@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Auto Check-Out Cron Job -->
+    <record id="ir_cron_auto_checkout_fixed" model="ir.cron">
+        <field name="name">Attendance: Auto Check-Out (18:00 Fixed)</field>
+        <field name="model_id" ref="hr_attendance.model_hr_attendance"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_auto_check_out_fixed()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="active">True</field>
+        <!-- Run daily; the method itself checks against 18:00 in each employee's timezone -->
+    </record>
+
+</odoo>

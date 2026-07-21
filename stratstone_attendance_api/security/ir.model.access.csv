@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_attendance_location_officer,attendance.location.officer,model_attendance_location,hr_attendance.group_hr_attendance_officer,1,1,1,1
+access_attendance_location_user,attendance.location.user,model_attendance_location,base.group_user,1,0,1,0

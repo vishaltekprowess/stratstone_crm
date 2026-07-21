@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================ -->
+    <!-- Attendance Location: Tree View                                -->
+    <!-- ============================================================ -->
+    <record id="attendance_location_tree_view" model="ir.ui.view">
+        <field name="name">attendance.location.tree</field>
+        <field name="model">attendance.location</field>
+        <field name="arch" type="xml">
+            <list string="Attendance Locations">
+                <field name="employee_id"/>
+                <field name="location_type"/>
+                <field name="latitude"/>
+                <field name="longitude"/>
+                <field name="accuracy"/>
+                <field name="address"/>
+                <field name="timestamp"/>
+                <field name="is_auto_checkout"/>
+                <field name="attendance_id"/>
+                <button name="action_open_map" string="View on Maps" type="object" icon="oi-arrow-right" class="btn btn-link" invisible="not latitude or not longitude"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ============================================================ -->
+    <!-- Attendance Location: Form View                                -->
+    <!-- ============================================================ -->
+    <record id="attendance_location_form_view" model="ir.ui.view">
+        <field name="name">attendance.location.form</field>
+        <field name="model">attendance.location</field>
+        <field name="arch" type="xml">
+            <form string="Attendance Location">
+                <sheet>
+                    <group>
+                        <group string="Employee Info">
+                            <field name="employee_id"/>
+                            <field name="attendance_id"/>
+                            <field name="location_type"/>
+                            <field name="timestamp"/>
+                            <field name="is_auto_checkout"/>
+                        </group>
+                        <group string="GPS Data">
+                            <label for="latitude" string="GPS Coordinates"/>
+                            <div>
+                                <div class="o_row">
+                                    <span><field name="latitude"/></span>,
+                                    <span><field name="longitude"/></span>
+                                </div>
+                                <button name="action_open_map" type="object" class="btn btn-link ps-0 pt-0 pb-2" icon="oi-arrow-right" string="View on Maps" invisible="not latitude or not longitude"/>
+                            </div>
+                            <field name="accuracy"/>
+                            <field name="address"/>
+                        </group>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_open_map" string="Open in Google Maps"
+                            type="object" class="btn-primary"
+                            invisible="not latitude or not longitude"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- ============================================================ -->
+    <!-- Attendance Location: Search View                              -->
+    <!-- ============================================================ -->
+    <record id="attendance_location_search_view" model="ir.ui.view">
+        <field name="name">attendance.location.search</field>
+        <field name="model">attendance.location</field>
+        <field name="arch" type="xml">
+            <search string="Attendance Locations">
+                <field name="employee_id"/>
+                <field name="address"/>
+                <filter string="Check In" name="filter_checkin"
+                        domain="[('location_type', '=', 'check_in')]"/>
+                <filter string="Check Out" name="filter_checkout"
+                        domain="[('location_type', '=', 'check_out')]"/>
+                <filter string="Tracking" name="filter_tracking"
+                        domain="[('location_type', '=', 'tracking')]"/>
+                <filter string="Auto Check-Out" name="filter_auto"
+                        domain="[('is_auto_checkout', '=', True)]"/>
+                <separator/>
+                <group expand="0" string="Group By">
+                    <filter string="Employee" name="group_employee"
+                            context="{'group_by': 'employee_id'}"/>
+                    <filter string="Type" name="group_type"
+                            context="{'group_by': 'location_type'}"/>
+                    <filter string="Date" name="group_date"
+                            context="{'group_by': 'timestamp:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ============================================================ -->
+    <!-- Attendance Location: Action                                   -->
+    <!-- ============================================================ -->
+    <record id="attendance_location_action" model="ir.actions.act_window">
+        <field name="name">Location Data</field>
+        <field name="res_model">attendance.location</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="attendance_location_search_view"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No location data recorded yet.
+            </p>
+            <p>
+                Location data is automatically recorded when employees
+                check in or check out via the attendance API.
+            </p>
+        </field>
+    </record>
+
+    <!-- ============================================================ -->
+    <!-- Menu Item under Attendances                                   -->
+    <!-- ============================================================ -->
+    <menuitem id="menu_attendance_location"
+              name="Location Data"
+              parent="hr_attendance.menu_hr_attendance_root"
+              action="attendance_location_action"
+              sequence="20"
+              groups="hr_attendance.group_hr_attendance_officer"/>
+
+    <!-- ============================================================ -->
+    <!-- Extend hr.attendance form to show location data               -->
+    <!-- ============================================================ -->
+    <record id="hr_attendance_view_form_inherit_location" model="ir.ui.view">
+        <field name="name">hr.attendance.form.inherit.location</field>
+        <field name="model">hr.attendance</field>
+        <field name="inherit_id" ref="hr_attendance.hr_attendance_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <notebook>
+                    <page string="Location Data" name="location_data">
+                        <group>
+                            <group string="Check-In Address">
+                                <field name="checkin_address"/>
+                            </group>
+                            <group string="Check-Out Address">
+                                <field name="checkout_address"/>
+                            </group>
+                        </group>
+                        <field name="location_ids">
+                            <list string="Locations" editable="bottom">
+                                <field name="location_type"/>
+                                <field name="latitude"/>
+                                <field name="longitude"/>
+                                <field name="accuracy"/>
+                                <field name="address"/>
+                                <field name="timestamp"/>
+                                <field name="is_auto_checkout"/>
+                                <button name="action_open_map" string="View on Maps" type="object" icon="oi-arrow-right" class="btn btn-link" invisible="not latitude or not longitude"/>
+                            </list>
+                        </field>
+                    </page>
+                </notebook>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
