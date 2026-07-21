@@ -2,3 +2,5 @@
 
 from . import attendance_location
 from . import hr_attendance_inherit
+from . import res_config_settings
+

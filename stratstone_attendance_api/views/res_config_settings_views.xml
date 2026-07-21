@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.stratstone.attendance</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="85"/>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="Attendance API" string="Attendance API" name="stratstone_attendance_api" groups="hr_attendance.group_hr_attendance_manager">
+                    <block title="Mobile Application Store URLs" name="mobile_app_urls_setting">
+                        <setting id="playstore_url_setting" title="Play Store URL" help="Google Play Store download URL for Attendance mobile app">
+                            <field name="playstore_url" widget="url" placeholder="https://play.google.com/store/apps/details?id=..."/>
+                        </setting>
+                        <setting id="appstore_url_setting" title="Apple Store URL" help="Apple App Store download URL for Attendance mobile app">
+                            <field name="appstore_url" widget="url" placeholder="https://apps.apple.com/app/id..."/>
+                        </setting>
+                    </block>
+                    <block title="App Download Page" name="web_landing_page_setting">
+                        <setting id="landing_page_info" help="Static webpage displaying mobile app download links for employees">
+                            <div class="text-muted">
+                                Public Download Webpage: <a href="/download-app" target="_blank" class="fw-bold">/download-app</a>
+                            </div>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_attendance_api_config_settings" model="ir.actions.act_window">
+        <field name="name">Settings</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">inline</field>
+        <field name="context">{'module': 'stratstone_attendance_api', 'bin_size': False}</field>
+    </record>
+
+    <menuitem id="menu_attendance_api_config_settings"
+              name="Attendance API Settings"
+              parent="hr_attendance.menu_hr_attendance_settings"
+              action="action_attendance_api_config_settings"
+              sequence="10"
+              groups="hr_attendance.group_hr_attendance_manager"/>
+
+
+</odoo>
