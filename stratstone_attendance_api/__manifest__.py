@@ -22,6 +22,11 @@
         'views/res_config_settings_views.xml',
         'views/download_app_template.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'stratstone_attendance_api/static/src/user_menu/user_menu_items.js',
+        ],
+    },
     'installable': True,
     'application': False,
     'auto_install': False,

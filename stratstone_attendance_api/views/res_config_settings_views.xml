@@ -44,5 +44,19 @@
               sequence="10"
               groups="hr_attendance.group_hr_attendance_manager"/>
 
+    <!-- Action & Menu for Internal Users to access Mobile App Download page -->
+    <record id="action_mobile_app_download_url" model="ir.actions.act_url">
+        <field name="name">Mobile App Download</field>
+        <field name="url">/download-app</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_mobile_app_download"
+              name="Mobile App Download"
+              parent="hr_attendance.menu_hr_attendance_root"
+              action="action_mobile_app_download_url"
+              sequence="25"
+              groups="base.group_user"/>
 
 </odoo>
+
