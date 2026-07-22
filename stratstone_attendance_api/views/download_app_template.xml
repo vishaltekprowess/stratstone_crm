@@ -212,13 +212,13 @@
                     </p>
 
                     <div class="buttons-grid">
-                        <!-- Google Play Store Button -->
+                        <!-- Android Store Button -->
                         <t t-if="playstore_url">
                             <a t-att-href="playstore_url" target="_blank" rel="noopener noreferrer" class="store-btn playstore">
                                 <i class="fab fa-google-play"></i>
                                 <div class="btn-text">
-                                    <div class="caption">GET IT ON</div>
-                                    <div class="title">Google Play</div>
+                                    <div class="caption">GET IT FOR</div>
+                                    <div class="title">Android</div>
                                 </div>
                             </a>
                         </t>
@@ -226,7 +226,7 @@
                             <div class="store-btn playstore disabled-btn" title="URL not configured yet">
                                 <i class="fab fa-google-play"></i>
                                 <div class="btn-text">
-                                    <div class="caption">Google Play</div>
+                                    <div class="caption">Android</div>
                                     <div class="title">Coming Soon</div>
                                 </div>
                             </div>
@@ -237,8 +237,8 @@
                             <a t-att-href="appstore_url" target="_blank" rel="noopener noreferrer" class="store-btn appstore">
                                 <i class="fab fa-apple"></i>
                                 <div class="btn-text">
-                                    <div class="caption">Download on the</div>
-                                    <div class="title">App Store</div>
+                                    <div class="caption">GET IT FOR</div>
+                                    <div class="title">IOS</div>
                                 </div>
                             </a>
                         </t>
@@ -246,7 +246,7 @@
                             <div class="store-btn appstore disabled-btn" title="URL not configured yet">
                                 <i class="fab fa-apple"></i>
                                 <div class="btn-text">
-                                    <div class="caption">App Store</div>
+                                    <div class="caption">IOS</div>
                                     <div class="title">Coming Soon</div>
                                 </div>
                             </div>
