@@ -24,12 +24,32 @@ class CrmLead(models.Model):
     meta_ad_id = fields.Char(
         string="Meta Ad ID", index=True, readonly=True, copy=False,
     )
+    meta_ad_name = fields.Char(
+        string="Meta Ad Name", readonly=True, copy=False,
+    )
+    meta_adset_id = fields.Char(
+        string="Meta Ad Set ID", readonly=True, copy=False,
+    )
+    meta_adset_name = fields.Char(
+        string="Meta Ad Set Name", readonly=True, copy=False,
+    )
+    meta_campaign_id = fields.Char(
+        string="Meta Campaign ID", index=True, readonly=True, copy=False,
+    )
+    meta_campaign_name = fields.Char(
+        string="Meta Campaign Name", readonly=True, copy=False,
+    )
     meta_created_time = fields.Datetime(
         string="Meta Created Time", readonly=True, copy=False,
     )
     meta_raw_payload = fields.Text(
         string="Meta Raw Payload", readonly=True, copy=False,
     )
+
+    # Custom Property Fields
+    bhk = fields.Char(string="BHK")
+    possession = fields.Char(string="Possession")
+    location = fields.Char(string="Location")
 
     _sql_constraints = [
         ('uniq_meta_lead_id', 'unique(meta_lead_id)',
@@ -181,7 +201,9 @@ class CrmLead(models.Model):
             "Source: Meta Lead Ads",
             f"Meta Lead ID: {lead_json.get('id')}",
             f"Meta Form ID: {lead_json.get('form_id')}",
-            f"Meta Ad ID: {lead_json.get('ad_id')}",
+            f"Meta Campaign: {lead_json.get('campaign_name') or lead_json.get('campaign_id') or 'N/A'}",
+            f"Meta Ad Set: {lead_json.get('adset_name') or lead_json.get('adset_id') or 'N/A'}",
+            f"Meta Ad: {lead_json.get('ad_name') or lead_json.get('ad_id') or 'N/A'}",
             f"Created: {lead_json.get('created_time')}",
             "",
             "Field Data:",
@@ -201,6 +223,30 @@ class CrmLead(models.Model):
         if not src:
             src = self.env['utm.source'].sudo().create({'name': name})
         return src.id
+
+    @api.model
+    def _meta_get_or_create_utm_campaign(self, name):
+        """Find or create a utm.campaign record by name."""
+        name = (name or '').strip()
+        if not name:
+            return False
+        camp = self.env['utm.campaign'].sudo().search(
+            [('name', '=', name)], limit=1)
+        if not camp:
+            camp = self.env['utm.campaign'].sudo().create({'name': name})
+        return camp.id
+
+    @api.model
+    def _meta_get_or_create_utm_medium(self, name='Paid Social'):
+        """Find or create a utm.medium record by name."""
+        name = (name or '').strip()
+        if not name:
+            return False
+        med = self.env['utm.medium'].sudo().search(
+            [('name', '=', name)], limit=1)
+        if not med:
+            med = self.env['utm.medium'].sudo().create({'name': name})
+        return med.id
 
     @api.model
     def _get_next_round_robin_salesperson(self):
@@ -335,7 +381,7 @@ class CrmLead(models.Model):
             stop_for_form = False
             while not stop_for_form and pages < max_pages:
                 q = {
-                    "fields": "created_time,id,ad_id,form_id,field_data",
+                    "fields": "created_time,id,ad_id,ad_name,adset_id,adset_name,campaign_id,campaign_name,form_id,form_name,field_data",
                     "limit": int(limit),
                 }
                 if after:
@@ -375,6 +421,10 @@ class CrmLead(models.Model):
                     city = fields_map.get('city')
                     zip_code = (fields_map.get('zip_code')
                                 or fields_map.get('zip'))
+                    bhk_val = (fields_map.get('bhk')
+                               or fields_map.get('configuration'))
+                    possession_val = (fields_map.get('possession')
+                                      or fields_map.get('posation'))
 
                     lead_name = full_name or f"Meta Lead {meta_lead_id}"
 
@@ -389,6 +439,10 @@ class CrmLead(models.Model):
                     else:
                         user_id, team_id = self._get_next_round_robin_salesperson()
 
+                    campaign_name = lead_json.get('campaign_name')
+                    campaign_id = self._meta_get_or_create_utm_campaign(campaign_name) if campaign_name else False
+                    medium_id = self._meta_get_or_create_utm_medium('Paid Social')
+
                     vals = {
                         "type": "opportunity",
                         "name": lead_name,
@@ -397,8 +451,12 @@ class CrmLead(models.Model):
                         "phone": phone,
                         "city": city,
                         "zip": zip_code,
+                        "bhk": bhk_val or False,
+                        "possession": possession_val or False,
                         "user_id": user_id,
                         "team_id": team_id,
+                        "campaign_id": campaign_id,
+                        "medium_id": medium_id,
                         "source_id": (
                             fb_source.id if fb_source
                             else self._meta_get_or_create_utm_source(
@@ -407,6 +465,11 @@ class CrmLead(models.Model):
                         "meta_form_id": (lead_json.get('form_id')
                                          or form_id),
                         "meta_ad_id": lead_json.get('ad_id'),
+                        "meta_ad_name": lead_json.get('ad_name'),
+                        "meta_adset_id": lead_json.get('adset_id'),
+                        "meta_adset_name": lead_json.get('adset_name'),
+                        "meta_campaign_id": lead_json.get('campaign_id'),
+                        "meta_campaign_name": campaign_name,
                         "meta_created_time": created_time,
                         "meta_raw_payload": json.dumps(
                             lead_json, ensure_ascii=False),

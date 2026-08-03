@@ -23,6 +23,7 @@
     'data': [
         'security/ir.model.access.csv',
         'data/cron.xml',
+        'views/crm_lead_views.xml',
         'wizard/meta_leadads_fetch_wizard.xml',
         'wizard/res_config_settings.xml',
     ],
