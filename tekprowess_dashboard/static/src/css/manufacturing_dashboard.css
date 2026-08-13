@@ -1,0 +1,626 @@
+/* ============================================================
+   Tekprowess Manufacturing Dashboard
+   ============================================================ */
+
+.tp_dashboard_wrap {
+    padding: 20px 24px 40px;
+    background: #f0f2f5;
+    box-sizing: border-box;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* ── Loading ── */
+.tp_loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    font-size: 15px;
+    color: #888;
+}
+
+/* ── Refresh button ── */
+.tp_refresh_btn {
+    background: transparent;
+    color: #875a7b;
+    border: 1px solid #875a7b;
+    border-radius: 5px;
+    padding: 4px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.tp_refresh_btn:hover {
+    background: #875a7b;
+    color: #fff;
+}
+
+/* ── Section header ── */
+.tp_section_header {
+    font-size: 12px;
+    font-weight: 700;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 24px 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tp_mt16 {
+    margin-top: 16px !important;
+}
+
+.tp_section_badge {
+    background: #875a7b;
+    color: #fff;
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.tp_section_badge:hover {
+    background: #6d4763;
+}
+
+/* ══════════════════════════════════════════
+   ROW 1 – Summary + state cards
+══════════════════════════════════════════ */
+
+.tp_cards_row {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 14px;
+    align-items: stretch;
+}
+
+/* ── Base card ── */
+.tp_card {
+    background: #fff;
+    border: 1px solid #e3e8f0;
+    border-radius: 10px;
+    padding: 18px 18px 14px;
+    flex: 1 1 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow 0.2s, transform 0.15s;
+}
+
+.tp_card:hover {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.09);
+    transform: translateY(-2px);
+}
+
+/* ── Wide summary card (with chart) ── */
+.tp_card_wide {
+    flex: 2.2 1 0;
+}
+
+/* Card accent colours */
+.tp_card_purple {
+    border-left: 4px solid #875a7b;
+}
+
+.tp_card_blue {
+    border-left: 4px solid #47a0c6;
+}
+
+.tp_card_orange {
+    border-left: 4px solid #e67e22;
+}
+
+.tp_card_green {
+    border-left: 4px solid #27ae60;
+}
+
+.tp_card_top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.tp_card_label {
+    font-size: 11px;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 2px;
+}
+
+.tp_card_big {
+    font-size: 40px;
+    font-weight: 800;
+    color: #1a1f36;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.15s;
+}
+
+.tp_card_big:hover {
+    color: #875a7b;
+}
+
+.tp_card_stats_right {
+    text-align: right;
+    min-width: 130px;
+}
+
+.tp_chart_area {
+    position: relative;
+    height: 140px;
+    width: 100%;
+    margin-top: 4px;
+}
+
+.tp_chart_area canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.tp_card_header_row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2px;
+}
+
+.tp_card_title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a1f36;
+}
+
+.tp_count_big {
+    font-size: 44px;
+    font-weight: 800;
+    color: #1a1f36;
+    cursor: pointer;
+    transition: color 0.15s;
+    margin-top: 2px;
+    margin-bottom: 4px;
+}
+
+.tp_count_big:hover {
+    color: #875a7b;
+}
+
+.tp_card_sub {
+    font-size: 11px;
+    color: #adb5bd;
+    margin-top: auto;
+    padding-top: 8px;
+}
+
+.tp_stat_row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 0;
+    font-size: 12px;
+    gap: 8px;
+}
+
+.tp_mt8 {
+    margin-top: auto;
+}
+
+.tp_sl {
+    color: #6c757d;
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.tp_sv {
+    font-weight: 700;
+    font-size: 12px;
+    color: #1a1f36;
+    cursor: pointer;
+    transition: color 0.15s;
+    white-space: nowrap;
+}
+
+.tp_sv:hover {
+    text-decoration: underline;
+}
+
+/* ══════════════════════════════════════════
+   ROW 2 – KPI Tiles
+══════════════════════════════════════════ */
+
+.tp_kpi_row {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+
+.tp_kpi_tile {
+    flex: 1 1 0;
+    background: #fff;
+    border-radius: 10px;
+    padding: 14px 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-evenly;
+    text-align: center;
+    border-top: 3px solid transparent;
+    transition: box-shadow 0.2s, transform 0.15s;
+    min-width: 0;
+    height: 130px;
+}
+
+.tp_kpi_tile:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.09);
+    transform: translateY(-2px);
+}
+
+.tp_kpi_purple {
+    border-top-color: #875a7b;
+}
+
+.tp_kpi_blue {
+    border-top-color: #47a0c6;
+}
+
+.tp_kpi_orange {
+    border-top-color: #e67e22;
+}
+
+.tp_kpi_red {
+    border-top-color: #e74c3c;
+}
+
+.tp_kpi_green {
+    border-top-color: #27ae60;
+}
+
+.tp_kpi_icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #f0f2f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: #6c757d;
+    flex-shrink: 0;
+}
+
+.tp_kpi_val {
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(13px, 1.8vw, 22px);
+    font-weight: 800;
+    color: #1a1f36;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    text-align: center;
+}
+
+.tp_kpi_sm {
+    font-size: clamp(11px, 1.2vw, 13px) !important;
+}
+
+.tp_kpi_label {
+    font-size: 11px;
+    color: #6c757d;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+/* ══════════════════════════════════════════
+   ROW 3 – Table + Side Card
+══════════════════════════════════════════ */
+
+.tp_bottom_row {
+    display: flex;
+    gap: 16px;
+    margin-top: 4px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.tp_table_card {
+    flex: 1 1 500px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+}
+
+.tp_side_card {
+    flex: 0 0 260px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+}
+
+.tp_table_header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid #f0f2f5;
+    font-size: 13px;
+    font-weight: 700;
+    color: #1a1f36;
+}
+
+.tp_table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.tp_table thead tr {
+    background: #f8f9fa;
+}
+
+.tp_table th {
+    padding: 9px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid #edf0f4;
+}
+
+.tp_table td {
+    padding: 9px 14px;
+    border-bottom: 1px solid #f4f6f9;
+    color: #3d4559;
+    vertical-align: middle;
+}
+
+.tp_table_row {
+    cursor: pointer;
+    transition: background 0.12s;
+}
+
+.tp_table_row:hover {
+    background: #f8f4fb;
+}
+
+.tp_table_row:hover .tp_td_name {
+    color: #875a7b;
+    text-decoration: underline;
+}
+
+.tp_td_name {
+    font-weight: 600;
+    color: #1a1f36;
+}
+
+.tp_uom {
+    font-size: 11px;
+    color: #adb5bd;
+    margin-left: 2px;
+}
+
+.tp_no_data {
+    text-align: center;
+    color: #adb5bd;
+    padding: 24px !important;
+}
+
+/* ── Status badges ── */
+.tp_badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: capitalize;
+    letter-spacing: 0.02em;
+}
+
+.tp_badge_draft {
+    background: #e9ecef;
+    color: #6c757d;
+}
+
+.tp_badge_confirmed {
+    background: #cff4fc;
+    color: #0a7fa3;
+}
+
+.tp_badge_progress {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.tp_badge_to_close {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.tp_badge_done {
+    background: #d1e7dd;
+    color: #0a5c36;
+}
+
+.tp_badge_cancel {
+    background: #f8d7da;
+    color: #842029;
+}
+
+.tp_badge_sale {
+    background: #d1e7dd;
+    color: #0a5c36;
+}
+
+.tp_badge_sent {
+    background: #cff4fc;
+    color: #0a7fa3;
+}
+
+.tp_badge_purchase {
+    background: #d1e7dd;
+    color: #0a5c36;
+}
+
+/* ── Workcenter / vendor progress bars ── */
+.tp_wc_list {
+    padding: 8px 14px 12px;
+}
+
+.tp_wc_item {
+    padding: 8px 0;
+    border-bottom: 1px solid #f4f6f9;
+}
+
+.tp_wc_item:last-child {
+    border-bottom: none;
+}
+
+.tp_wc_name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1a1f36;
+    margin-bottom: 4px;
+}
+
+.tp_wc_bar_wrap {
+    height: 5px;
+    background: #e9ecef;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 3px;
+}
+
+.tp_wc_bar {
+    height: 100%;
+    background: linear-gradient(90deg, #875a7b, #bb92ac);
+    border-radius: 3px;
+    transition: width 0.5s ease;
+}
+
+.tp_wc_pct {
+    font-size: 11px;
+    color: #6c757d;
+    font-weight: 600;
+}
+
+/* ── Invoice payment status badges ── */
+.tp_badge_acc_paid {
+    background: #d1e7dd;
+    color: #0a5c36;
+}
+
+.tp_badge_acc_not_paid {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.tp_badge_acc_in_payment {
+    background: #cff4fc;
+    color: #0a7fa3;
+}
+
+.tp_badge_acc_partial {
+    background: #f8d7da;
+    color: #842029;
+}
+
+/* ── Colour helpers ── */
+.tp_red {
+    color: #e74c3c !important;
+}
+
+.tp_green {
+    color: #27ae60 !important;
+}
+
+.tp_orange {
+    color: #e67e22 !important;
+}
+
+/* ── Buttons ── */
+.tp_btn {
+    background: #875a7b;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.tp_btn:hover {
+    background: #6d4763;
+}
+
+.tp_btn_secondary {
+    background: #f0e9f5;
+    color: #875a7b;
+}
+
+.tp_btn_secondary:hover {
+    background: #d9cce4;
+}
+
+/* ── Mini proportion bar (state cards empty space filler) ── */
+.tp_mini_bar_wrap {
+    height: 5px;
+    background: #e9ecef;
+    border-radius: 3px;
+    overflow: hidden;
+    margin: 12px 0 4px;
+    width: 100%;
+}
+
+.tp_mini_bar {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s ease;
+    min-width: 2px;
+}
+
+.tp_mini_purple {
+    background: linear-gradient(90deg, #875a7b, #bb92ac);
+}
+
+.tp_mini_blue {
+    background: linear-gradient(90deg, #47a0c6, #7ec4df);
+}
+
+.tp_mini_orange {
+    background: linear-gradient(90deg, #e67e22, #f0a960);
+}
+
+.tp_mini_red {
+    background: linear-gradient(90deg, #e74c3c, #f07b73);
+}
+
+.tp_mini_green {
+    background: linear-gradient(90deg, #27ae60, #5cd18c);
+}
+
+.tp_mini_pct {
+    font-size: 15px;
+    color: #adb5bd;
+    font-weight: 500;
+    margin-bottom: 4px;
+}

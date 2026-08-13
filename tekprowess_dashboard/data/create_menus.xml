@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="0">
+    <!--
+        This function runs on EVERY install and upgrade.
+        It dynamically creates dashboard menus based on which
+        modules (mrp, sale, purchase, account, stock) are installed.
+    -->
+    <function model="tekprowess.dashboard" name="_create_menus"/>
+</odoo>

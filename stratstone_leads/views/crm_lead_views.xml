@@ -23,11 +23,34 @@
                 <attribute name="invisible">1</attribute>
             </xpath>
 
-            <!-- Add BHK and Possession string fields -->
+            <!-- Rename Expected Revenue to Budget -->
+            <xpath expr="//label[@for='expected_revenue']" position="attributes">
+                <attribute name="string">Budget</attribute>
+            </xpath>
+            <xpath expr="//field[@name='expected_revenue']" position="attributes">
+                <attribute name="string">Budget</attribute>
+            </xpath>
+
+            <!-- Add BHK and Possession fields -->
             <xpath expr="//field[@name='tag_ids']" position="after">
                 <field name="bhk" string="Preference"/>
                 <field name="possession"/>
                 <field name="location"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Search View Inheritance for Group By BHK -->
+    <record id="crm_lead_view_search_inherit_stratstone" model="ir.ui.view">
+        <field name="name">crm.lead.search.inherit.stratstone</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.view_crm_case_opportunities_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <field name="bhk" string="BHK"/>
+            </xpath>
+            <xpath expr="//group" position="inside">
+                <filter string="BHK" name="groupby_bhk" context="{'group_by': 'bhk'}"/>
             </xpath>
         </field>
     </record>

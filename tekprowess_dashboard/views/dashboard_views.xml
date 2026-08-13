@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- =====================================================================
+         Dashboard Client Actions (standalone — no module dependencies)
+         ===================================================== -->
+    <record id="action_tekprowess_crm_dashboard" model="ir.actions.client">
+        <field name="name">CRM Dashboard</field>
+        <field name="tag">manufacturing_dashboard</field>
+        <field name="context">{"dashboard_section": "crm"}</field>
+    </record>
+
+    <record id="action_tekprowess_mfg_dashboard" model="ir.actions.client">
+        <field name="name">Manufacturing Dashboard</field>
+        <field name="tag">manufacturing_dashboard</field>
+        <field name="context">{"dashboard_section": "manufacturing"}</field>
+    </record>
+
+    <record id="action_tekprowess_sale_dashboard" model="ir.actions.client">
+        <field name="name">Sales Dashboard</field>
+        <field name="tag">manufacturing_dashboard</field>
+        <field name="context">{"dashboard_section": "sales"}</field>
+    </record>
+
+    <record id="action_tekprowess_purchase_dashboard" model="ir.actions.client">
+        <field name="name">Purchase Dashboard</field>
+        <field name="tag">manufacturing_dashboard</field>
+        <field name="context">{"dashboard_section": "purchase"}</field>
+    </record>
+
+    <record id="action_tekprowess_accounting_dashboard" model="ir.actions.client">
+        <field name="name">Accounting Dashboard</field>
+        <field name="tag">manufacturing_dashboard</field>
+        <field name="context">{"dashboard_section": "accounting"}</field>
+    </record>
+
+    <record id="action_tekprowess_inventory_dashboard" model="ir.actions.client">
+        <field name="name">Inventory Dashboard</field>
+        <field name="tag">manufacturing_dashboard</field>
+        <field name="context">{"dashboard_section": "inventory"}</field>
+    </record>
+
+    <!--
+        Menu items are NOT defined here.
+        They are created dynamically by the post_init_hook in __init__.py
+        based on which modules (mrp, sale, purchase, account, stock)
+        are actually installed in the system.
+    -->
+
+</odoo>

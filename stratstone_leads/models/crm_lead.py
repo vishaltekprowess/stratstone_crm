@@ -12,6 +12,8 @@ _logger = logging.getLogger(__name__)
 class CrmLead(models.Model):
     _inherit = 'crm.lead'
 
+    expected_revenue = fields.Monetary(string="Budget")
+
     # -------------------------
     # Meta Lead Ads Fields
     # -------------------------
@@ -47,7 +49,17 @@ class CrmLead(models.Model):
     )
 
     # Custom Property Fields
-    bhk = fields.Char(string="BHK")
+    bhk = fields.Selection([
+        ('1_rk', '1 RK'),
+        ('1_bhk', '1 BHK'),
+        ('2_bhk', '2 BHK'),
+        ('3_bhk', '3 BHK'),
+        ('4_bhk', '4 BHK'),
+        ('5_plus_bhk', '5+ BHK'),
+        ('studio', 'Studio'),
+        ('penthouse', 'Penthouse'),
+        ('plot_villa', 'Plot / Villa'),
+    ], string="BHK")
     possession = fields.Char(string="Possession")
     location = fields.Char(string="Location")
 
@@ -451,7 +463,7 @@ class CrmLead(models.Model):
                         "phone": phone,
                         "city": city,
                         "zip": zip_code,
-                        "bhk": bhk_val or False,
+                        "bhk": self._normalize_bhk_selection(bhk_val),
                         "possession": possession_val or False,
                         "user_id": user_id,
                         "team_id": team_id,
@@ -510,3 +522,36 @@ class CrmLead(models.Model):
         self.with_context(
             meta_date_from=today, meta_date_to=today
         ).meta_leadads_sync_leads()
+
+    @api.model
+    def _normalize_bhk_selection(self, bhk_val):
+        """Convert arbitrary string input to standard BHK Selection key."""
+        if not bhk_val:
+            return False
+        val_str = str(bhk_val).strip().lower()
+        clean_str = val_str.replace(" ", "").replace("_", "").replace("-", "")
+        if '1bhk' in clean_str or clean_str == '1':
+            return '1_bhk'
+        elif '2bhk' in clean_str or clean_str == '2':
+            return '2_bhk'
+        elif '3bhk' in clean_str or clean_str == '3':
+            return '3_bhk'
+        elif '4bhk' in clean_str or clean_str == '4':
+            return '4_bhk'
+        elif '5bhk' in clean_str or '5+' in clean_str or clean_str == '5':
+            return '5_plus_bhk'
+        elif 'studio' in clean_str:
+            return 'studio'
+        elif 'penthouse' in clean_str:
+            return 'penthouse'
+        elif 'plot' in clean_str or 'villa' in clean_str:
+            return 'plot_villa'
+
+        valid_keys = [
+            '1_bhk', '2_bhk', '3_bhk', '4_bhk', '5_plus_bhk',
+            'studio', 'penthouse', 'plot_villa'
+        ]
+        if bhk_val in valid_keys:
+            return bhk_val
+        return False
+

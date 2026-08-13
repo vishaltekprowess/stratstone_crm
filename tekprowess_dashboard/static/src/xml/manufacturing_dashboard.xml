@@ -1,0 +1,798 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="tekprowess_dashboard.ManufacturingDashboard">
+        <div class="o_action">
+            <div class="o_content">
+                <div class="tp_dashboard_wrap">
+
+            <t t-if="state.loading">
+                <div class="tp_loading">
+                    <i class="fa fa-circle-o-notch fa-spin me-2"/> Loading Dashboard…
+                </div>
+            </t>
+
+            <t t-else="">
+
+                <!-- ═══════════════════════════════════════════
+                     CRM SECTION
+                ════════════════════════════════════════════ -->
+                <t t-if="this.section === 'crm'">
+
+                    <div class="tp_section_header">
+                        <i class="fa fa-handshake-o me-2"/>CRM Pipeline &amp; Opportunities
+                        <span class="tp_section_badge" t-on-click="onClickCrmAll">
+                            <t t-esc="state.data.total_opps or 0"/> Total Opportunities
+                        </span>
+                        <button class="tp_refresh_btn ms-auto" t-on-click="() => this.refresh()">
+                            <i class="fa fa-refresh me-1"/> Refresh
+                        </button>
+                    </div>
+
+                    <div class="tp_cards_row">
+                        <div class="tp_card tp_card_wide tp_card_purple">
+                            <div class="tp_card_top">
+                                <div>
+                                    <div class="tp_card_label">Pipeline Overview</div>
+                                    <div class="tp_card_big" t-on-click="onClickCrmAll">
+                                        <t t-esc="this.fmt(state.data.total_expected_revenue, state.data.currency_symbol)"/>
+                                    </div>
+                                </div>
+                                <div class="tp_card_stats_right">
+                                    <div class="tp_stat_row"><span class="tp_sl">Total Opps</span><span class="tp_sv" t-on-click="onClickCrmAll"><t t-esc="state.data.total_opps or 0"/></span></div>
+                                    <div class="tp_stat_row"><span class="tp_sl">In Pipeline</span><span class="tp_sv tp_blue" t-on-click="onClickCrmPipeline"><t t-esc="state.data.pipeline_count or 0"/></span></div>
+                                    <div class="tp_stat_row"><span class="tp_sl">Won</span><span class="tp_sv tp_green" t-on-click="onClickCrmWon"><t t-esc="state.data.won_count or 0"/></span></div>
+                                    <div class="tp_stat_row"><span class="tp_sl">Lost</span><span class="tp_sv tp_red" t-on-click="onClickCrmLost"><t t-esc="state.data.lost_count or 0"/></span></div>
+                                </div>
+                            </div>
+                            <div class="tp_chart_area"><canvas t-ref="mainChart"/></div>
+                        </div>
+
+                        <div class="tp_card">
+                            <div class="tp_card_header_row"><span class="tp_card_title">Total Opportunities</span><button class="tp_btn" t-on-click="onClickCrmAll">View</button></div>
+                            <div class="tp_count_big" t-on-click="onClickCrmAll"><t t-esc="state.data.total_opps or 0"/></div>
+                            <div class="tp_mini_bar_wrap">
+                                <div class="tp_mini_bar tp_mini_purple" style="width: 100%"/>
+                            </div>
+                            <div class="tp_mini_pct">Expected: <t t-esc="this.fmt(state.data.total_expected_revenue, state.data.currency_symbol)"/></div>
+                            <div class="tp_card_sub">Total Pipeline Opportunities</div>
+                        </div>
+
+                        <div class="tp_card">
+                            <div class="tp_card_header_row"><span class="tp_card_title">In Pipeline</span><button class="tp_btn" t-on-click="onClickCrmPipeline">View</button></div>
+                            <div class="tp_count_big tp_blue" t-on-click="onClickCrmPipeline"><t t-esc="state.data.pipeline_count or 0"/></div>
+                            <div class="tp_mini_bar_wrap">
+                                <div class="tp_mini_bar tp_mini_blue" t-attf-style="width: #{this.pct(state.data.pipeline_count, state.data.total_opps)}%"/>
+                            </div>
+                            <div class="tp_mini_pct"><t t-esc="this.pct(state.data.pipeline_count, state.data.total_opps)"/>% of total</div>
+                            <div class="tp_card_sub">Active Unclosed Opps</div>
+                        </div>
+
+                        <div class="tp_card">
+                            <div class="tp_card_header_row"><span class="tp_card_title">Won Deals</span><button class="tp_btn tp_btn_secondary" t-on-click="onClickCrmWon">View</button></div>
+                            <div class="tp_count_big tp_green" t-on-click="onClickCrmWon"><t t-esc="state.data.won_count or 0"/></div>
+                            <div class="tp_mini_bar_wrap">
+                                <div class="tp_mini_bar tp_mini_green" t-attf-style="width: #{this.pct(state.data.won_count, state.data.total_opps)}%"/>
+                            </div>
+                            <div class="tp_mini_pct">Revenue: <t t-esc="this.fmt(state.data.won_revenue, state.data.currency_symbol)"/></div>
+                            <div class="tp_card_sub">Closed Won Opportunities</div>
+                        </div>
+
+                        <div class="tp_card">
+                            <div class="tp_card_header_row"><span class="tp_card_title">Win Rate</span><button class="tp_btn" t-on-click="onClickCrmWon">Details</button></div>
+                            <div class="tp_count_big tp_orange"><t t-esc="state.data.win_rate or 0"/>%</div>
+                            <div class="tp_mini_bar_wrap">
+                                <div class="tp_mini_bar tp_mini_orange" t-attf-style="width: #{state.data.win_rate or 0}%"/>
+                            </div>
+                            <div class="tp_mini_pct">Lost: <t t-esc="state.data.lost_count or 0"/> opps</div>
+                            <div class="tp_card_sub">Conversion Efficiency</div>
+                        </div>
+                    </div>
+
+                    <div class="tp_section_header tp_mt16"><i class="fa fa-tachometer me-2"/>CRM Key Metrics</div>
+                    <div class="tp_kpi_row">
+                        <div class="tp_kpi_tile tp_kpi_purple">
+                            <div class="tp_kpi_icon"><i class="fa fa-calculator"/></div>
+                            <div class="tp_kpi_val"><t t-esc="this.fmt(state.data.total_prorated_revenue, state.data.currency_symbol)"/></div>
+                            <div class="tp_kpi_label">Prorated Revenue</div>
+                        </div>
+                        <div class="tp_kpi_tile tp_kpi_blue">
+                            <div class="tp_kpi_icon"><i class="fa fa-bar-chart"/></div>
+                            <div class="tp_kpi_val"><t t-esc="this.fmt(state.data.avg_deal_size, state.data.currency_symbol)"/></div>
+                            <div class="tp_kpi_label">Avg Deal Size</div>
+                        </div>
+                        <div class="tp_kpi_tile tp_kpi_red">
+                            <div class="tp_kpi_icon"><i class="fa fa-clock-o"/></div>
+                            <div class="tp_kpi_val"><t t-esc="state.data.overdue_count or 0"/></div>
+                            <div class="tp_kpi_label">Overdue Closing</div>
+                        </div>
+                        <div class="tp_kpi_tile tp_kpi_green">
+                            <div class="tp_kpi_icon"><i class="fa fa-user-plus"/></div>
+                            <div class="tp_kpi_val"><t t-esc="state.data.today_count or 0"/></div>
+                            <div class="tp_kpi_label">Created Today</div>
+                        </div>
+                        <div class="tp_kpi_tile tp_kpi_orange">
+                            <div class="tp_kpi_icon"><i class="fa fa-times-circle"/></div>
+                            <div class="tp_kpi_val"><t t-esc="state.data.lost_count or 0"/></div>
+                            <div class="tp_kpi_label">Lost Opportunities</div>
+                        </div>
+                    </div>
+
+                    <div class="tp_bottom_row">
+                        <div class="tp_table_card">
+                            <div class="tp_table_header">
+                                <span><i class="fa fa-list me-2"/>Recent Opportunities</span>
+                                <button class="tp_btn" t-on-click="onClickCrmAll">View Pipeline</button>
+                            </div>
+                            <table class="tp_table">
+                                <thead>
+                                    <tr>
+                                        <th>Opportunity</th>
+                                        <th>Customer</th>
+                                        <th>Budget</th>
+                                        <th>Stage</th>
+                                        <th>Probability</th>
+                                        <th>Salesperson</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="state.data.recent_opps or []" t-as="row" t-key="row.id">
+                                        <tr t-on-click="() => this.openCrmLead(row.id)" class="tp_table_row">
+                                            <td class="tp_td_name"><t t-esc="row.name"/></td>
+                                            <td><t t-esc="row.partner"/></td>
+                                            <td class="fw-bold"><t t-esc="this.fmt(row.revenue, state.data.currency_symbol)"/></td>
+                                            <td><span class="tp_badge tp_badge_sent"><t t-esc="row.stage"/></span></td>
+                                            <td><t t-esc="row.probability"/>%</td>
+                                            <td><t t-esc="row.user"/></td>
+                                        </tr>
+                                    </t>
+                                    <t t-if="!(state.data.recent_opps and state.data.recent_opps.length)">
+                                        <tr><td colspan="6" class="tp_no_data">No opportunities found.</td></tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="tp_side_card" t-if="state.data.stages and state.data.stages.length">
+                            <div class="tp_table_header"><span><i class="fa fa-filter me-2"/>Pipeline Stage Distribution</span></div>
+                            <div class="tp_wc_list">
+                                <t t-foreach="state.data.stages or []" t-as="st" t-key="st.id">
+                                    <div class="tp_wc_item" t-on-click="() => this.onClickCrmStage(st.id, st.name)" style="cursor: pointer;">
+                                        <div class="tp_wc_name">
+                                            <t t-esc="st.name"/>
+                                            <t t-if="st.is_won"><span class="badge bg-success ms-1">Won</span></t>
+                                        </div>
+                                        <div class="tp_wc_bar_wrap">
+                                            <div class="tp_wc_bar" t-attf-style="width: #{st.pct}%; background-color: #{st.is_won ? '#27ae60' : '#875a7b'};"/>
+                                        </div>
+                                        <div class="tp_wc_pct">
+                                            <t t-esc="st.count"/> opps (<t t-esc="this.fmt(st.revenue, state.data.currency_symbol)"/>)
+                                        </div>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+
+                </t>
+
+                <!-- ═══════════════════════════════════════════
+                     MANUFACTURING SECTION
+                ════════════════════════════════════════════ -->
+                <t t-if="this.section === 'manufacturing'">
+
+                    <div class="tp_section_header">
+                        <i class="fa fa-industry me-2"/>Manufacturing Orders
+                        <span class="tp_section_badge" t-on-click="onClickMfgAll">
+                            <t t-esc="state.data.total or 0"/> Total
+                        </span>
+                        <button class="tp_refresh_btn ms-auto" t-on-click="() => this.refresh()">
+                            <i class="fa fa-refresh me-1"/> Refresh
+                        </button>
+                    </div>
+
+                    <div class="tp_cards_row">
+                        <div class="tp_card tp_card_wide tp_card_purple">
+                            <div class="tp_card_top">
+                                <div>
+                                    <div class="tp_card_label">Manufacturing Orders</div>
+                                    <div class="tp_card_big" t-on-click="onClickMfgAll"><t t-esc="state.data.total or 0"/></div>
+                                </div>
+                                <div class="tp_card_stats_right">
+                                    <div class="tp_stat_row"><span class="tp_sl">Today</span><span class="tp_sv" t-on-click="onClickMfgAll"><t t-esc="state.data.today or 0"/></span></div>
+                                    <div class="tp_stat_row"><span class="tp_sl">Overdue</span><span class="tp_sv tp_red" t-on-click="onClickMfgAll"><t t-esc="state.data.overdue or 0"/></span></div>
+                                    <div class="tp_stat_row"><span class="tp_sl">In Progress</span><span class="tp_sv tp_orange" t-on-click="onClickMfgProgress"><t t-esc="state.data.progress or 0"/></span></div>
+                                    <div class="tp_stat_row"><span class="tp_sl">Done</span><span class="tp_sv tp_green" t-on-click="onClickMfgDone"><t t-esc="state.data.done or 0"/></span></div>
+                                </div>
+                            </div>
+                            <div class="tp_chart_area"><canvas t-ref="mainChart"/></div>
+                        </div>
+                        <div class="tp_card">
+                            <div class="tp_card_header_row"><span class="tp_card_title">Draft</span><button class="tp_btn" t-on-click="onClickMfgDraft">Open</button></div>
+                            <div class="tp_count_big" t-on-click="onClickMfgDraft"><t t-esc="state.data.draft or 0"/></div>
+                            <div class="tp_mini_bar_wrap">
+                                <div class="tp_mini_bar tp_mini_purple" t-attf-style="width: #{this.pct(state.data.draft, state.data.total)}%"/>
+                            </div>
+                            <div class="tp_mini_pct"><t t-esc="this.pct(state.data.draft, state.data.total)"/>% of total</div>
+                            <div class="tp_card_sub">Manufacturing Orders</div>
+                        </div>
+                        <div class="tp_card">
+                            <div class="tp_card_header_row"><span class="tp_card_title">Confirmed</span><button class="tp_btn" t-on-click="onClickMfgConfirmed">Open</button></div>
+                            <div class="tp_count_big" t-on-click="onClickMfgConfirmed"><t t-esc="state.data.confirmed or 0"/></div>
+                            <div class="tp_mini_bar_wrap">
+                                <div class="tp_mini_bar tp_mini_blue" t-attf-style="width: #{this.pct(state.data.confirmed, state.data.total)}%"/>
+                            </div>
+                            <div class="tp_mini_pct"><t t-esc="this.pct(state.data.confirmed, state.data.total)"/>% of total</div>
+                            <div class="tp_card_sub">Manufacturing Orders</div>
+                        </div>
+                        <div class="tp_card">
+                            <div class="tp_card_header_row"><span class="tp_card_title">In Progress</span><button class="tp_btn" t-on-click="onClickMfgProgress">Open</button></div>
+                            <div class="tp_count_big tp_orange" t-on-click="onClickMfgProgress"><t t-esc="state.data.progress or 0"/></div>
+                            <div class="tp_mini_bar_wrap">
+                                <div class="tp_mini_bar tp_mini_orange" t-attf-style="width: #{this.pct(state.data.progress, state.data.total)}%"/>
+                            </div>
+                            <div class="tp_mini_pct"><t t-esc="this.pct(state.data.progress, state.data.total)"/>% of total</div>
+                            <div class="tp_card_sub">Manufacturing Orders</div>
+                        </div>
+                        <div class="tp_card">
+                            <div class="tp_card_header_row"><span class="tp_card_title">Done</span><button class="tp_btn tp_btn_secondary" t-on-click="onClickMfgDone">Open</button></div>
+                            <div class="tp_count_big tp_green" t-on-click="onClickMfgDone"><t t-esc="state.data.done or 0"/></div>
+                            <div class="tp_mini_bar_wrap">
+                                <div class="tp_mini_bar tp_mini_green" t-attf-style="width: #{this.pct(state.data.done, state.data.total)}%"/>
+                            </div>
+                            <div class="tp_mini_pct"><t t-esc="this.pct(state.data.done, state.data.total)"/>% of total</div>
+                            <div class="tp_card_sub">Manufacturing Orders</div>
+                        </div>
+                    </div>
+
+                    <div class="tp_section_header tp_mt16"><i class="fa fa-tachometer me-2"/>Key Metrics</div>
+                    <div class="tp_kpi_row">
+                        <div class="tp_kpi_tile tp_kpi_purple"><div class="tp_kpi_icon"><i class="fa fa-check-circle"/></div><div class="tp_kpi_val"><t t-esc="state.data.month_done or 0"/></div><div class="tp_kpi_label">Done This Month</div></div>
+                        <div class="tp_kpi_tile tp_kpi_orange"><div class="tp_kpi_icon"><i class="fa fa-spinner"/></div><div class="tp_kpi_val"><t t-esc="state.data.progress or 0"/></div><div class="tp_kpi_label">In Progress</div></div>
+                        <div class="tp_kpi_tile tp_kpi_red"><div class="tp_kpi_icon"><i class="fa fa-exclamation-circle"/></div><div class="tp_kpi_val"><t t-esc="state.data.overdue or 0"/></div><div class="tp_kpi_label">Overdue</div></div>
+                        <div class="tp_kpi_tile tp_kpi_green"><div class="tp_kpi_icon"><i class="fa fa-calendar-check-o"/></div><div class="tp_kpi_val"><t t-esc="state.data.today or 0"/></div><div class="tp_kpi_label">Scheduled Today</div></div>
+                        <div class="tp_kpi_tile tp_kpi_blue"><div class="tp_kpi_icon"><i class="fa fa-ban"/></div><div class="tp_kpi_val"><t t-esc="state.data.cancel or 0"/></div><div class="tp_kpi_label">Cancelled</div></div>
+                    </div>
+
+                    <div class="tp_bottom_row">
+                        <div class="tp_table_card">
+                            <div class="tp_table_header">
+                                <span><i class="fa fa-list me-2"/>Recent Manufacturing Orders</span>
+                                <button class="tp_btn" t-on-click="onClickMfgAll">View All</button>
+                            </div>
+                            <table class="tp_table">
+                                <thead><tr><th>Reference</th><th>Product</th><th>Qty</th><th>Date</th><th>Status</th></tr></thead>
+                                <tbody>
+                                    <t t-foreach="state.data.recent_orders or []" t-as="row" t-key="row.id">
+                                        <tr t-on-click="() => this.openMfgOrder(row.id)" class="tp_table_row">
+                                            <td class="tp_td_name"><t t-esc="row.name"/></td>
+                                            <td><t t-esc="row.product"/></td>
+                                            <td><t t-esc="row.qty"/> <span class="tp_uom"><t t-esc="row.uom"/></span></td>
+                                            <td><t t-esc="row.date"/></td>
+                                            <td><span t-attf-class="tp_badge tp_badge_#{row.state}"><t t-esc="row.state_label"/></span></td>
+                                        </tr>
+                                    </t>
+                                    <t t-if="!(state.data.recent_orders and state.data.recent_orders.length)">
+                                        <tr><td colspan="5" class="tp_no_data">No manufacturing orders found.</td></tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="tp_side_card" t-if="state.data.workcenters and state.data.workcenters.length">
+                            <div class="tp_table_header"><span><i class="fa fa-cogs me-2"/>Workcenter Utilization</span></div>
+                            <div class="tp_wc_list">
+                                <t t-foreach="state.data.workcenters or []" t-as="wc" t-key="wc.name">
+                                    <div class="tp_wc_item">
+                                        <div class="tp_wc_name"><t t-esc="wc.name"/></div>
+                                        <div class="tp_wc_bar_wrap"><div class="tp_wc_bar" t-attf-style="width: #{wc.pct}%"/></div>
+                                        <div class="tp_wc_pct"><t t-esc="wc.done"/>/<t t-esc="wc.total"/> (<t t-esc="wc.pct"/>%)</div>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+
+                <!-- ═══════════════════════════════════════════
+                     SALES SECTION
+                ════════════════════════════════════════════ -->
+                <t t-if="this.section === 'sales'">
+
+                    <div class="tp_section_header">
+                        <i class="fa fa-shopping-cart me-2"/>Sales Orders
+                        <span class="tp_section_badge" t-on-click="onClickSaleAll"><t t-esc="state.data.total or 0"/> Total</span>
+                        <button class="tp_refresh_btn ms-auto" t-on-click="() => this.refresh()"><i class="fa fa-refresh me-1"/> Refresh</button>
+                    </div>
+
+                    <div class="tp_cards_row">
+                        <div class="tp_card tp_card_wide tp_card_blue">
+                            <div class="tp_card_top">
+                                <div>
+                                    <div class="tp_card_label">Sales Orders</div>
+                                    <div class="tp_card_big" t-on-click="onClickSaleAll"><t t-esc="state.data.total or 0"/></div>
+                                </div>
+                                <div class="tp_card_stats_right">
+                                    <div class="tp_stat_row"><span class="tp_sl">This Month</span><span class="tp_sv"><t t-esc="this.fmt(state.data.month_amount, state.data.currency_symbol)"/></span></div>
+                                    <div class="tp_stat_row"><span class="tp_sl">Confirmed</span><span class="tp_sv tp_orange" t-on-click="onClickSaleConfirmed"><t t-esc="state.data.sale or 0"/></span></div>
+                                    <div class="tp_stat_row"><span class="tp_sl">To Invoice</span><span class="tp_sv tp_red" t-on-click="onClickSaleToInvoice"><t t-esc="state.data.to_invoice or 0"/></span></div>
+                                    <div class="tp_stat_row"><span class="tp_sl">Overdue</span><span class="tp_sv tp_red" t-on-click="onClickSaleAll"><t t-esc="state.data.overdue or 0"/></span></div>
+                                </div>
+                            </div>
+                            <div class="tp_chart_area"><canvas t-ref="mainChart"/></div>
+                        </div>
+                        <div class="tp_card">
+                            <div class="tp_card_header_row"><span class="tp_card_title">Quotations</span><button class="tp_btn" t-on-click="onClickSaleQuotation">New</button></div>
+                            <div class="tp_count_big" t-on-click="onClickSaleQuotation"><t t-esc="state.data.quotation or 0"/></div>
+                            <div class="tp_mini_bar_wrap">
+                                <div class="tp_mini_bar tp_mini_purple" t-attf-style="width: #{this.pct(state.data.quotation, state.data.total)}%"/>
+                            </div>
+                            <div class="tp_mini_pct"><t t-esc="this.pct(state.data.quotation, state.data.total)"/>% of total</div>
+                            <div class="tp_stat_row tp_mt8"><span class="tp_sl">Sent</span><span class="tp_sv" t-on-click="onClickSaleSent"><t t-esc="state.data.sent or 0"/></span></div>
+                        </div>
+                        <div class="tp_card">
+                            <div class="tp_card_header_row"><span class="tp_card_title">Sales Orders</span><button class="tp_btn" t-on-click="onClickSaleConfirmed">Open</button></div>
+                            <div class="tp_count_big tp_orange" t-on-click="onClickSaleConfirmed"><t t-esc="state.data.sale or 0"/></div>
+                            <div class="tp_mini_bar_wrap">
+                                <div class="tp_mini_bar tp_mini_orange" t-attf-style="width: #{this.pct(state.data.sale, state.data.total)}%"/>
+                            </div>
+                            <div class="tp_mini_pct"><t t-esc="this.pct(state.data.sale, state.data.total)"/>% of total</div>
+                            <div class="tp_stat_row tp_mt8"><span class="tp_sl">Amount</span><span class="tp_sv"><t t-esc="this.fmt(state.data.confirmed_amount, state.data.currency_symbol)"/></span></div>
+                        </div>
+                        <div class="tp_card">
+                            <div class="tp_card_header_row"><span class="tp_card_title">To Invoice</span><button class="tp_btn" t-on-click="onClickSaleToInvoice">Open</button></div>
+                            <div class="tp_count_big tp_red" t-on-click="onClickSaleToInvoice"><t t-esc="state.data.to_invoice or 0"/></div>
+                            <div class="tp_mini_bar_wrap">
+                                <div class="tp_mini_bar tp_mini_red" t-attf-style="width: #{this.pct(state.data.to_invoice, state.data.sale)}%"/>
+                            </div>
+                            <div class="tp_mini_pct"><t t-esc="this.pct(state.data.to_invoice, state.data.sale)"/>% of confirmed</div>
+                            <div class="tp_card_sub">Pending invoicing</div>
+                        </div>
+                        <div class="tp_card">
+                            <div class="tp_card_header_row"><span class="tp_card_title">Locked</span><button class="tp_btn tp_btn_secondary" t-on-click="onClickSaleDone">Open</button></div>
+                            <div class="tp_count_big tp_green" t-on-click="onClickSaleDone"><t t-esc="state.data.done or 0"/></div>
+                            <div class="tp_mini_bar_wrap">
+                                <div class="tp_mini_bar tp_mini_green" t-attf-style="width: #{this.pct(state.data.done, state.data.total)}%"/>
+                            </div>
+                            <div class="tp_mini_pct"><t t-esc="this.pct(state.data.done, state.data.total)"/>% of total</div>
+                            <div class="tp_card_sub">Sales Orders</div>
+                        </div>
+                    </div>
+
+                    <div class="tp_section_header tp_mt16"><i class="fa fa-tachometer me-2"/>Key Metrics</div>
+                    <div class="tp_kpi_row">
+                        <div class="tp_kpi_tile tp_kpi_blue"><div class="tp_kpi_icon"><i class="fa fa-dollar"/></div><div class="tp_kpi_val tp_kpi_sm"><t t-esc="this.fmt(state.data.month_amount, state.data.currency_symbol)"/></div><div class="tp_kpi_label">This Month Revenue</div></div>
+                        <div class="tp_kpi_tile tp_kpi_green"><div class="tp_kpi_icon"><i class="fa fa-line-chart"/></div><div class="tp_kpi_val tp_kpi_sm"><t t-esc="this.fmt(state.data.avg_order_val, state.data.currency_symbol)"/></div><div class="tp_kpi_label">Avg Order Value</div></div>
+                        <div class="tp_kpi_tile tp_kpi_orange"><div class="tp_kpi_icon"><i class="fa fa-file-text"/></div><div class="tp_kpi_val"><t t-esc="state.data.month_count or 0"/></div><div class="tp_kpi_label">Orders This Month</div></div>
+                        <div class="tp_kpi_tile tp_kpi_red"><div class="tp_kpi_icon"><i class="fa fa-clock-o"/></div><div class="tp_kpi_val"><t t-esc="state.data.to_invoice or 0"/></div><div class="tp_kpi_label">Awaiting Invoice</div></div>
+                        <div class="tp_kpi_tile tp_kpi_purple"><div class="tp_kpi_icon"><i class="fa fa-ban"/></div><div class="tp_kpi_val"><t t-esc="state.data.cancel or 0"/></div><div class="tp_kpi_label">Cancelled</div></div>
+                    </div>
+
+                    <div class="tp_bottom_row">
+                        <div class="tp_table_card">
+                            <div class="tp_table_header">
+                                <span><i class="fa fa-list me-2"/>Recent Sales Orders</span>
+                                <button class="tp_btn" t-on-click="onClickSaleAll">View All</button>
+                            </div>
+                            <table class="tp_table">
+                                <thead><tr><th>Reference</th><th>Customer</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead>
+                                <tbody>
+                                    <t t-foreach="state.data.recent_orders or []" t-as="row" t-key="row.id">
+                                        <tr t-on-click="() => this.openSaleOrder(row.id)" class="tp_table_row">
+                                            <td class="tp_td_name"><t t-esc="row.name"/></td>
+                                            <td><t t-esc="row.partner"/></td>
+                                            <td><t t-esc="this.fmt(row.amount, state.data.currency_symbol)"/></td>
+                                            <td><t t-esc="row.date"/></td>
+                                            <td><span t-attf-class="tp_badge tp_badge_#{row.state}"><t t-esc="row.state_label"/></span></td>
+                                        </tr>
+                                    </t>
+                                    <t t-if="!(state.data.recent_orders and state.data.recent_orders.length)">
+                                        <tr><td colspan="5" class="tp_no_data">No sales orders found.</td></tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="tp_side_card" t-if="state.data.top_customers and state.data.top_customers.length">
+                            <div class="tp_table_header"><span><i class="fa fa-star me-2"/>Top Customers</span></div>
+                            <div class="tp_wc_list">
+                                <t t-foreach="state.data.top_customers or []" t-as="c" t-key="c.name">
+                                    <div class="tp_wc_item">
+                                        <div class="tp_wc_name"><t t-esc="c.name"/></div>
+                                        <div class="tp_wc_pct tp_green"><t t-esc="this.fmt(c.amount, state.data.currency_symbol)"/></div>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+
+                <!-- ═══════════════════════════════════════════
+                     PURCHASE SECTION
+                ════════════════════════════════════════════ -->
+                <t t-if="this.section === 'purchase'">
+
+                    <div class="tp_section_header">
+                        <i class="fa fa-shopping-basket me-2"/>Purchase Orders
+                        <span class="tp_section_badge" t-on-click="onClickPurchaseAll"><t t-esc="state.data.total or 0"/> Total</span>
+                        <button class="tp_refresh_btn ms-auto" t-on-click="() => this.refresh()"><i class="fa fa-refresh me-1"/> Refresh</button>
+                    </div>
+
+                    <div class="tp_cards_row">
+                        <div class="tp_card tp_card_wide tp_card_orange">
+                            <div class="tp_card_top">
+                                <div>
+                                    <div class="tp_card_label">Purchase Orders</div>
+                                    <div class="tp_card_big" t-on-click="onClickPurchaseAll"><t t-esc="state.data.total or 0"/></div>
+                                </div>
+                                <div class="tp_card_stats_right">
+                                    <div class="tp_stat_row"><span class="tp_sl">This Month</span><span class="tp_sv"><t t-esc="this.fmt(state.data.month_amount, state.data.currency_symbol)"/></span></div>
+                                    <div class="tp_stat_row"><span class="tp_sl">Confirmed</span><span class="tp_sv tp_orange" t-on-click="onClickPurchaseConfirmed"><t t-esc="state.data.purchase or 0"/></span></div>
+                                    <div class="tp_stat_row"><span class="tp_sl">To Bill</span><span class="tp_sv tp_red" t-on-click="onClickPurchaseToBill"><t t-esc="state.data.to_bill or 0"/></span></div>
+                                    <div class="tp_stat_row"><span class="tp_sl">Overdue</span><span class="tp_sv tp_red" t-on-click="onClickPurchaseAll"><t t-esc="state.data.overdue or 0"/></span></div>
+                                </div>
+                            </div>
+                            <div class="tp_chart_area"><canvas t-ref="mainChart"/></div>
+                        </div>
+                        <div class="tp_card">
+                            <div class="tp_card_header_row"><span class="tp_card_title">RFQ</span><button class="tp_btn" t-on-click="onClickPurchaseDraft">New</button></div>
+                            <div class="tp_count_big" t-on-click="onClickPurchaseDraft"><t t-esc="state.data.draft or 0"/></div>
+                            <div class="tp_mini_bar_wrap">
+                                <div class="tp_mini_bar tp_mini_purple" t-attf-style="width: #{this.pct(state.data.draft, state.data.total)}%"/>
+                            </div>
+                            <div class="tp_mini_pct"><t t-esc="this.pct(state.data.draft, state.data.total)"/>% of total</div>
+                            <div class="tp_stat_row tp_mt8"><span class="tp_sl">Sent</span><span class="tp_sv" t-on-click="onClickPurchaseSent"><t t-esc="state.data.sent or 0"/></span></div>
+                        </div>
+                        <div class="tp_card">
+                            <div class="tp_card_header_row"><span class="tp_card_title">Purchase Orders</span><button class="tp_btn" t-on-click="onClickPurchaseConfirmed">Open</button></div>
+                            <div class="tp_count_big tp_orange" t-on-click="onClickPurchaseConfirmed"><t t-esc="state.data.purchase or 0"/></div>
+                            <div class="tp_mini_bar_wrap">
+                                <div class="tp_mini_bar tp_mini_orange" t-attf-style="width: #{this.pct(state.data.purchase, state.data.total)}%"/>
+                            </div>
+                            <div class="tp_mini_pct"><t t-esc="this.pct(state.data.purchase, state.data.total)"/>% of total</div>
+                            <div class="tp_stat_row tp_mt8"><span class="tp_sl">Amount</span><span class="tp_sv"><t t-esc="this.fmt(state.data.confirmed_amount, state.data.currency_symbol)"/></span></div>
+                        </div>
+                        <div class="tp_card">
+                            <div class="tp_card_header_row"><span class="tp_card_title">To Bill</span><button class="tp_btn" t-on-click="onClickPurchaseToBill">Open</button></div>
+                            <div class="tp_count_big tp_red" t-on-click="onClickPurchaseToBill"><t t-esc="state.data.to_bill or 0"/></div>
+                            <div class="tp_mini_bar_wrap">
+                                <div class="tp_mini_bar tp_mini_red" t-attf-style="width: #{this.pct(state.data.to_bill, state.data.purchase)}%"/>
+                            </div>
+                            <div class="tp_mini_pct"><t t-esc="this.pct(state.data.to_bill, state.data.purchase)"/>% of confirmed</div>
+                            <div class="tp_card_sub">Pending billing</div>
+                        </div>
+                        <div class="tp_card">
+                            <div class="tp_card_header_row"><span class="tp_card_title">Done</span><button class="tp_btn tp_btn_secondary" t-on-click="onClickPurchaseDone">Open</button></div>
+                            <div class="tp_count_big tp_green" t-on-click="onClickPurchaseDone"><t t-esc="state.data.done or 0"/></div>
+                            <div class="tp_mini_bar_wrap">
+                                <div class="tp_mini_bar tp_mini_green" t-attf-style="width: #{this.pct(state.data.done, state.data.total)}%"/>
+                            </div>
+                            <div class="tp_mini_pct"><t t-esc="this.pct(state.data.done, state.data.total)"/>% of total</div>
+                            <div class="tp_card_sub">Purchase Orders</div>
+                        </div>
+                    </div>
+
+                    <div class="tp_section_header tp_mt16"><i class="fa fa-tachometer me-2"/>Key Metrics</div>
+                    <div class="tp_kpi_row">
+                        <div class="tp_kpi_tile tp_kpi_orange"><div class="tp_kpi_icon"><i class="fa fa-dollar"/></div><div class="tp_kpi_val tp_kpi_sm"><t t-esc="this.fmt(state.data.month_amount, state.data.currency_symbol)"/></div><div class="tp_kpi_label">This Month Spend</div></div>
+                        <div class="tp_kpi_tile tp_kpi_green"><div class="tp_kpi_icon"><i class="fa fa-line-chart"/></div><div class="tp_kpi_val tp_kpi_sm"><t t-esc="this.fmt(state.data.avg_order_val, state.data.currency_symbol)"/></div><div class="tp_kpi_label">Avg Order Value</div></div>
+                        <div class="tp_kpi_tile tp_kpi_blue"><div class="tp_kpi_icon"><i class="fa fa-file-text"/></div><div class="tp_kpi_val"><t t-esc="state.data.month_count or 0"/></div><div class="tp_kpi_label">Orders This Month</div></div>
+                        <div class="tp_kpi_tile tp_kpi_red"><div class="tp_kpi_icon"><i class="fa fa-clock-o"/></div><div class="tp_kpi_val"><t t-esc="state.data.to_bill or 0"/></div><div class="tp_kpi_label">Awaiting Bill</div></div>
+                        <div class="tp_kpi_tile tp_kpi_purple"><div class="tp_kpi_icon"><i class="fa fa-exclamation-triangle"/></div><div class="tp_kpi_val"><t t-esc="state.data.overdue or 0"/></div><div class="tp_kpi_label">Overdue Deliveries</div></div>
+                    </div>
+
+                    <div class="tp_bottom_row">
+                        <div class="tp_table_card">
+                            <div class="tp_table_header">
+                                <span><i class="fa fa-list me-2"/>Recent Purchase Orders</span>
+                                <button class="tp_btn" t-on-click="onClickPurchaseAll">View All</button>
+                            </div>
+                            <table class="tp_table">
+                                <thead><tr><th>Reference</th><th>Vendor</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead>
+                                <tbody>
+                                    <t t-foreach="state.data.recent_orders or []" t-as="row" t-key="row.id">
+                                        <tr t-on-click="() => this.openPurchaseOrder(row.id)" class="tp_table_row">
+                                            <td class="tp_td_name"><t t-esc="row.name"/></td>
+                                            <td><t t-esc="row.partner"/></td>
+                                            <td><t t-esc="this.fmt(row.amount, state.data.currency_symbol)"/></td>
+                                            <td><t t-esc="row.date"/></td>
+                                            <td><span t-attf-class="tp_badge tp_badge_#{row.state}"><t t-esc="row.state_label"/></span></td>
+                                        </tr>
+                                    </t>
+                                    <t t-if="!(state.data.recent_orders and state.data.recent_orders.length)">
+                                        <tr><td colspan="5" class="tp_no_data">No purchase orders found.</td></tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="tp_side_card" t-if="state.data.top_vendors and state.data.top_vendors.length">
+                            <div class="tp_table_header"><span><i class="fa fa-building me-2"/>Top Vendors</span></div>
+                            <div class="tp_wc_list">
+                                <t t-foreach="state.data.top_vendors or []" t-as="v" t-key="v.name">
+                                    <div class="tp_wc_item">
+                                        <div class="tp_wc_name"><t t-esc="v.name"/></div>
+                                        <div class="tp_wc_pct tp_orange"><t t-esc="this.fmt(v.amount, state.data.currency_symbol)"/></div>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+
+                <!-- ═══════════════════════════════════════════
+                     ACCOUNTING SECTION
+                ════════════════════════════════════════════ -->
+                <t t-if="this.section === 'accounting'">
+
+                    <!-- Customer Invoices header -->
+                    <div class="tp_section_header">
+                        <i class="fa fa-file-text-o me-2"/>Customer Invoices
+                        <span class="tp_section_badge" t-on-click="onClickInvoiceAll">
+                            <t t-esc="state.data.inv_total or 0"/> Total
+                        </span>
+                        <button class="tp_refresh_btn ms-auto" t-on-click="() => this.refresh()">
+                            <i class="fa fa-refresh me-1"/> Refresh
+                        </button>
+                    </div>
+
+                    <div class="tp_cards_row">
+                        <div class="tp_card tp_card_wide tp_card_green">
+                            <div class="tp_card_top">
+                                <div>
+                                    <div class="tp_card_label">Customer Invoices</div>
+                                    <div class="tp_card_big" t-on-click="onClickInvoiceAll"><t t-esc="state.data.inv_total or 0"/></div>
+                                </div>
+                                <div class="tp_card_stats_right">
+                                    <div class="tp_stat_row"><span class="tp_sl">Posted</span><span class="tp_sv" t-on-click="onClickInvoicePosted"><t t-esc="state.data.inv_posted or 0"/></span></div>
+                                    <div class="tp_stat_row"><span class="tp_sl">To Collect</span><span class="tp_sv tp_orange" t-on-click="onClickInvoiceToPay"><t t-esc="state.data.inv_to_pay or 0"/></span></div>
+                                    <div class="tp_stat_row"><span class="tp_sl">Overdue</span><span class="tp_sv tp_red" t-on-click="onClickInvoiceOverdue"><t t-esc="state.data.inv_overdue or 0"/></span></div>
+                                    <div class="tp_stat_row"><span class="tp_sl">Paid</span><span class="tp_sv tp_green" t-on-click="onClickInvoicePaid"><t t-esc="state.data.inv_paid or 0"/></span></div>
+                                </div>
+                            </div>
+                            <div class="tp_chart_area"><canvas t-ref="mainChart"/></div>
+                        </div>
+                        <div class="tp_card">
+                            <div class="tp_card_header_row"><span class="tp_card_title">Draft</span><button class="tp_btn" t-on-click="onClickInvoiceDraft">Open</button></div>
+                            <div class="tp_count_big" t-on-click="onClickInvoiceDraft"><t t-esc="state.data.inv_draft or 0"/></div>
+                            <div class="tp_mini_bar_wrap"><div class="tp_mini_bar tp_mini_purple" t-attf-style="width: #{this.pct(state.data.inv_draft, state.data.inv_total)}%"/></div>
+                            <div class="tp_mini_pct"><t t-esc="this.pct(state.data.inv_draft, state.data.inv_total)"/>% of total</div>
+                            <div class="tp_card_sub">Invoices</div>
+                        </div>
+                        <div class="tp_card">
+                            <div class="tp_card_header_row"><span class="tp_card_title">To Collect</span><button class="tp_btn" t-on-click="onClickInvoiceToPay">Open</button></div>
+                            <div class="tp_count_big tp_orange" t-on-click="onClickInvoiceToPay"><t t-esc="state.data.inv_to_pay or 0"/></div>
+                            <div class="tp_mini_bar_wrap"><div class="tp_mini_bar tp_mini_orange" t-attf-style="width: #{this.pct(state.data.inv_to_pay, state.data.inv_posted)}%"/></div>
+                            <div class="tp_mini_pct"><t t-esc="this.pct(state.data.inv_to_pay, state.data.inv_posted)"/>% of posted</div>
+                            <div class="tp_stat_row tp_mt8"><span class="tp_sl">Receivable</span><span class="tp_sv"><t t-esc="this.fmt(state.data.total_receivable, state.data.currency_symbol)"/></span></div>
+                        </div>
+                        <div class="tp_card">
+                            <div class="tp_card_header_row"><span class="tp_card_title">Overdue</span><button class="tp_btn" t-on-click="onClickInvoiceOverdue">Open</button></div>
+                            <div class="tp_count_big tp_red" t-on-click="onClickInvoiceOverdue"><t t-esc="state.data.inv_overdue or 0"/></div>
+                            <div class="tp_mini_bar_wrap"><div class="tp_mini_bar tp_mini_red" t-attf-style="width: #{this.pct(state.data.inv_overdue, state.data.inv_to_pay)}%"/></div>
+                            <div class="tp_mini_pct"><t t-esc="this.pct(state.data.inv_overdue, state.data.inv_to_pay)"/>% of unpaid</div>
+                            <div class="tp_card_sub">Past due date</div>
+                        </div>
+                        <div class="tp_card">
+                            <div class="tp_card_header_row"><span class="tp_card_title">Paid</span><button class="tp_btn tp_btn_secondary" t-on-click="onClickInvoicePaid">Open</button></div>
+                            <div class="tp_count_big tp_green" t-on-click="onClickInvoicePaid"><t t-esc="state.data.inv_paid or 0"/></div>
+                            <div class="tp_mini_bar_wrap"><div class="tp_mini_bar tp_mini_green" t-attf-style="width: #{this.pct(state.data.inv_paid, state.data.inv_total)}%"/></div>
+                            <div class="tp_mini_pct"><t t-esc="this.pct(state.data.inv_paid, state.data.inv_total)"/>% of total</div>
+                            <div class="tp_card_sub">Invoices</div>
+                        </div>
+                    </div>
+
+                    <!-- Journals Overview (Native Graphs) -->
+                    <t t-if="state.data.journal_graphs and state.data.journal_graphs.length">
+                        <div class="tp_section_header tp_mt16">
+                            <i class="fa fa-pie-chart me-2"/>Journals Overview
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;">
+                            <t t-foreach="state.data.journal_graphs" t-as="jg" t-key="jg.id">
+                                <div class="tp_card">
+                                    <div class="tp_card_header_row">
+                                        <span class="tp_card_title"><t t-esc="jg.name"/></span>
+                                    </div>
+                                    <div class="tp_chart_area" style="height: 120px;">
+                                        <canvas t-att-id="'journal_chart_' + jg.id"/>
+                                    </div>
+                                </div>
+                            </t>
+                        </div>
+                    </t>
+
+                    <!-- KPI Tiles -->
+                    <div class="tp_section_header tp_mt16"><i class="fa fa-tachometer me-2"/>Key Metrics</div>
+                    <div class="tp_kpi_row">
+                        <div class="tp_kpi_tile tp_kpi_green"><div class="tp_kpi_icon"><i class="fa fa-arrow-down"/></div><div class="tp_kpi_val tp_kpi_sm"><t t-esc="this.fmt(state.data.total_receivable, state.data.currency_symbol)"/></div><div class="tp_kpi_label">Total Receivable</div></div>
+                        <div class="tp_kpi_tile tp_kpi_red"><div class="tp_kpi_icon"><i class="fa fa-arrow-up"/></div><div class="tp_kpi_val tp_kpi_sm"><t t-esc="this.fmt(state.data.total_payable, state.data.currency_symbol)"/></div><div class="tp_kpi_label">Total Payable</div></div>
+                        <div class="tp_kpi_tile tp_kpi_blue"><div class="tp_kpi_icon"><i class="fa fa-calendar"/></div><div class="tp_kpi_val tp_kpi_sm"><t t-esc="this.fmt(state.data.month_invoiced, state.data.currency_symbol)"/></div><div class="tp_kpi_label">This Month Invoiced</div></div>
+                        <div class="tp_kpi_tile tp_kpi_orange"><div class="tp_kpi_icon"><i class="fa fa-exclamation-triangle"/></div><div class="tp_kpi_val"><t t-esc="state.data.inv_overdue or 0"/></div><div class="tp_kpi_label">Overdue Invoices</div></div>
+                        <div class="tp_kpi_tile tp_kpi_purple"><div class="tp_kpi_icon"><i class="fa fa-balance-scale"/></div><div class="tp_kpi_val tp_kpi_sm"><t t-esc="this.fmt(state.data.net_balance, state.data.currency_symbol)"/></div><div class="tp_kpi_label">Net Balance</div></div>
+                    </div>
+
+                    <!-- Vendor Bills row -->
+                    <div class="tp_section_header tp_mt16">
+                        <i class="fa fa-shopping-basket me-2"/>Vendor Bills
+                        <span class="tp_section_badge" t-on-click="onClickBillAll"><t t-esc="state.data.bill_total or 0"/> Total</span>
+                    </div>
+                    <div class="tp_cards_row">
+                        <div class="tp_card">
+                            <div class="tp_card_header_row"><span class="tp_card_title">Draft Bills</span><button class="tp_btn" t-on-click="onClickBillDraft">Open</button></div>
+                            <div class="tp_count_big" t-on-click="onClickBillDraft"><t t-esc="state.data.bill_draft or 0"/></div>
+                            <div class="tp_mini_bar_wrap"><div class="tp_mini_bar tp_mini_purple" t-attf-style="width: #{this.pct(state.data.bill_draft, state.data.bill_total)}%"/></div>
+                            <div class="tp_mini_pct"><t t-esc="this.pct(state.data.bill_draft, state.data.bill_total)"/>% of total</div>
+                            <div class="tp_card_sub">Vendor Bills</div>
+                        </div>
+                        <div class="tp_card">
+                            <div class="tp_card_header_row"><span class="tp_card_title">Posted Bills</span><button class="tp_btn" t-on-click="onClickBillPosted">Open</button></div>
+                            <div class="tp_count_big tp_orange" t-on-click="onClickBillPosted"><t t-esc="state.data.bill_posted or 0"/></div>
+                            <div class="tp_mini_bar_wrap"><div class="tp_mini_bar tp_mini_orange" t-attf-style="width: #{this.pct(state.data.bill_posted, state.data.bill_total)}%"/></div>
+                            <div class="tp_mini_pct"><t t-esc="this.pct(state.data.bill_posted, state.data.bill_total)"/>% of total</div>
+                            <div class="tp_stat_row tp_mt8"><span class="tp_sl">Total Payable</span><span class="tp_sv"><t t-esc="this.fmt(state.data.total_payable, state.data.currency_symbol)"/></span></div>
+                        </div>
+                        <div class="tp_card">
+                            <div class="tp_card_header_row"><span class="tp_card_title">Overdue Bills</span><button class="tp_btn" t-on-click="onClickBillOverdue">Open</button></div>
+                            <div class="tp_count_big tp_red" t-on-click="onClickBillOverdue"><t t-esc="state.data.bill_overdue or 0"/></div>
+                            <div class="tp_mini_bar_wrap"><div class="tp_mini_bar tp_mini_red" t-attf-style="width: #{this.pct(state.data.bill_overdue, state.data.bill_posted)}%"/></div>
+                            <div class="tp_mini_pct"><t t-esc="this.pct(state.data.bill_overdue, state.data.bill_posted)"/>% of posted</div>
+                            <div class="tp_card_sub">Past due date</div>
+                        </div>
+                        <div class="tp_card">
+                            <div class="tp_card_header_row"><span class="tp_card_title">Paid Bills</span><button class="tp_btn tp_btn_secondary" t-on-click="onClickBillAll">Open</button></div>
+                            <div class="tp_count_big tp_green" t-on-click="onClickBillAll"><t t-esc="state.data.bill_paid or 0"/></div>
+                            <div class="tp_mini_bar_wrap"><div class="tp_mini_bar tp_mini_green" t-attf-style="width: #{this.pct(state.data.bill_paid, state.data.bill_total)}%"/></div>
+                            <div class="tp_mini_pct"><t t-esc="this.pct(state.data.bill_paid, state.data.bill_total)"/>% of total</div>
+                            <div class="tp_card_sub">Vendor Bills</div>
+                        </div>
+                    </div>
+
+                    <!-- Recent invoices + top customers -->
+                    <div class="tp_bottom_row">
+                        <div class="tp_table_card">
+                            <div class="tp_table_header">
+                                <span><i class="fa fa-list me-2"/>Recent Customer Invoices</span>
+                                <button class="tp_btn" t-on-click="onClickInvoiceAll">View All</button>
+                            </div>
+                            <table class="tp_table">
+                                <thead><tr><th>Reference</th><th>Customer</th><th>Amount</th><th>Due Date</th><th>Status</th></tr></thead>
+                                <tbody>
+                                    <t t-foreach="state.data.recent_invoices or []" t-as="row" t-key="row.id">
+                                        <tr t-on-click="() => this.openInvoice(row.id)" class="tp_table_row">
+                                            <td class="tp_td_name"><t t-esc="row.name"/></td>
+                                            <td><t t-esc="row.partner"/></td>
+                                            <td><t t-esc="this.fmt(row.amount, state.data.currency_symbol)"/></td>
+                                            <td>
+                                                <span t-att-class="row.overdue ? 'tp_red' : ''"><t t-esc="row.due or row.date"/></span>
+                                            </td>
+                                            <td>
+                                                <span t-attf-class="tp_badge tp_badge_acc_#{row.pay_state}"><t t-esc="row.pay_label or row.state_label"/></span>
+                                            </td>
+                                        </tr>
+                                    </t>
+                                    <t t-if="!(state.data.recent_invoices and state.data.recent_invoices.length)">
+                                        <tr><td colspan="5" class="tp_no_data">No invoices found.</td></tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="tp_side_card" t-if="state.data.top_customers and state.data.top_customers.length">
+                            <div class="tp_table_header"><span><i class="fa fa-star me-2"/>Top Customers</span></div>
+                            <div class="tp_wc_list">
+                                <t t-foreach="state.data.top_customers or []" t-as="c" t-key="c.name">
+                                    <div class="tp_wc_item">
+                                        <div class="tp_wc_name"><t t-esc="c.name"/></div>
+                                        <div class="tp_wc_pct tp_green"><t t-esc="this.fmt(c.amount, state.data.currency_symbol)"/></div>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+
+                </t><!-- end accounting section -->
+
+                <!-- ═══════════════════════════════════════════
+                     INVENTORY SECTION
+                ════════════════════════════════════════════ -->
+                <t t-if="this.section === 'inventory'">
+                    
+                    <div class="tp_section_header">
+                        <i class="fa fa-cubes me-2"/>Inventory Overview
+                        <button class="tp_refresh_btn ms-auto" t-on-click="() => this.refresh()">
+                            <i class="fa fa-refresh me-1"/> Refresh
+                        </button>
+                    </div>
+
+                    <!-- KPI Tiles -->
+                    <div class="tp_kpi_row mt-2">
+                        <div class="tp_kpi_tile tp_kpi_blue"><div class="tp_kpi_icon"><i class="fa fa-cubes"/></div><div class="tp_kpi_val"><t t-esc="state.data.total_transfers or 0"/></div><div class="tp_kpi_label">Total Transfers</div></div>
+                        <div class="tp_kpi_tile tp_kpi_orange"><div class="tp_kpi_icon"><i class="fa fa-clock-o"/></div><div class="tp_kpi_val"><t t-esc="state.data.draft_transfers or 0"/></div><div class="tp_kpi_label">Draft Transfers</div></div>
+                        <div class="tp_kpi_tile tp_kpi_red"><div class="tp_kpi_icon"><i class="fa fa-exclamation-circle"/></div><div class="tp_kpi_val"><t t-esc="state.data.late_transfers or 0"/></div><div class="tp_kpi_label">Late Transfers</div></div>
+                        <div class="tp_kpi_tile tp_kpi_green"><div class="tp_kpi_icon"><i class="fa fa-money"/></div><div class="tp_kpi_val tp_kpi_sm"><t t-esc="this.fmt(state.data.total_valuation, state.data.currency_symbol)"/></div><div class="tp_kpi_label">Inv. Valuation</div></div>
+                    </div>
+
+                    <!-- Operation Types Overview (Native Graphs) -->
+                    <t t-if="state.data.inventory_graphs and state.data.inventory_graphs.length">
+                        <div class="tp_section_header tp_mt16">
+                            <i class="fa fa-exchange me-2"/>Operation Types
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;">
+                            <t t-foreach="state.data.inventory_graphs" t-as="jg" t-key="jg.id">
+                                <div class="tp_card">
+                                    <div class="tp_card_header_row" style="cursor: pointer;" t-on-click="() => this.onClickPickingAction(jg.id, 'get_stock_picking_action_picking_type')">
+                                        <span class="tp_card_title"><t t-esc="jg.name"/></span>
+                                        <i class="fa fa-ellipsis-v text-muted" />
+                                    </div>
+                                    <div class="tp_stat_row tp_mt8">
+                                        <t t-if="jg.count_ready > 0">
+                                            <t t-if="jg.code === 'incoming'"><button class="btn btn-primary btn-sm" t-on-click="() => this.onClickPickingAction(jg.id, 'get_action_picking_tree_ready')"><t t-esc="jg.count_ready"/> To Receive</button></t>
+                                            <t t-elif="jg.code === 'outgoing'"><button class="btn btn-primary btn-sm" t-on-click="() => this.onClickPickingAction(jg.id, 'get_action_picking_tree_ready')"><t t-esc="jg.count_ready"/> To Deliver</button></t>
+                                            <t t-else=""><button class="btn btn-primary btn-sm" t-on-click="() => this.onClickPickingAction(jg.id, 'get_action_picking_tree_ready')"><t t-esc="jg.count_ready"/> To Process</button></t>
+                                        </t>
+                                        <t t-else="">
+                                            <button class="btn btn-secondary btn-sm" t-on-click="() => this.onClickPickingAction(jg.id, 'get_stock_picking_action_picking_type')">Open</button>
+                                        </t>
+                                        
+                                        <div style="flex: 1; text-align: right; font-size: 0.9em;">
+                                            <t t-if="jg.count_waiting > 0"><div style="cursor: pointer;" t-on-click="() => this.onClickPickingAction(jg.id, 'get_action_picking_tree_waiting')">Waiting: <b class="ms-2"><t t-esc="jg.count_waiting"/></b></div></t>
+                                            <t t-if="jg.count_late > 0"><div style="cursor: pointer; color: #dc3545;" t-on-click="() => this.onClickPickingAction(jg.id, 'get_action_picking_tree_late')">Late: <b class="ms-2"><t t-esc="jg.count_late"/></b></div></t>
+                                            <t t-if="jg.count_backorders > 0"><div style="cursor: pointer; color: #f39c12;" t-on-click="() => this.onClickPickingAction(jg.id, 'get_action_picking_tree_backorder')">Backorders: <b class="ms-2"><t t-esc="jg.count_backorders"/></b></div></t>
+                                            <t t-if="jg.count_move_ready > 0"><div style="cursor: pointer;" t-on-click="() => this.onClickPickingAction(jg.id, 'get_action_picking_type_ready_moves')">Operations: <b class="ms-2"><t t-esc="jg.count_move_ready"/></b></div></t>
+                                        </div>
+                                    </div>
+                                    <div class="tp_chart_area" style="height: 120px; margin-top: 15px;">
+                                        <canvas t-att-id="'inventory_chart_' + jg.id"/>
+                                    </div>
+                                </div>
+                            </t>
+                        </div>
+                    </t>
+
+                    <!-- Recent transfers + low stock alerts -->
+                    <div class="tp_bottom_row mt-4">
+                        <div class="tp_table_card">
+                            <div class="tp_table_header">
+                                <span><i class="fa fa-list me-2"/>Recent Transfers</span>
+                                <button class="tp_btn" t-on-click="onClickTransferAll">View All</button>
+                            </div>
+                            <table class="tp_table">
+                                <thead><tr><th>Reference</th><th>Contact</th><th>Scheduled Date</th><th>Operation Type</th><th>Status</th></tr></thead>
+                                <tbody>
+                                    <t t-foreach="state.data.recent_transfers or []" t-as="row" t-key="row.id">
+                                        <tr t-on-click="() => this.openTransfer(row.id)" class="tp_table_row">
+                                            <td class="tp_td_name"><t t-esc="row.name"/></td>
+                                            <td><t t-esc="row.partner"/></td>
+                                            <td><t t-esc="row.scheduled_date"/></td>
+                                            <td><t t-esc="row.type"/></td>
+                                            <td>
+                                                <span t-attf-class="tp_badge tp_badge_#{row.state === 'done' ? 'green' : row.state === 'cancel' ? 'red' : 'purple'}">
+                                                    <t t-esc="row.state"/>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    </t>
+                                    <t t-if="!(state.data.recent_transfers and state.data.recent_transfers.length)">
+                                        <tr><td colspan="5" class="tp_no_data">No recent transfers found.</td></tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="tp_side_card" t-if="state.data.low_stock and state.data.low_stock.length">
+                            <div class="tp_table_header"><span><i class="fa fa-exclamation-triangle me-2 tp_red"/>Low Stock Alerts</span></div>
+                            <div class="tp_wc_list">
+                                <t t-foreach="state.data.low_stock or []" t-as="p" t-key="p.id">
+                                    <div class="tp_wc_item" style="cursor: pointer;" t-on-click="() => this.openProduct(p.id)">
+                                        <div class="tp_wc_name"><t t-esc="p.name"/></div>
+                                        <div class="tp_wc_pct tp_red"><t t-esc="p.qty"/> <t t-esc="p.uom"/></div>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+
+                </t><!-- end inventory section -->
+
+            </t><!-- end loading check -->
+                </div><!-- end tp_dashboard_wrap -->
+            </div><!-- end o_content -->
+        </div><!-- end o_action -->
+    </t>
+
+</templates>
