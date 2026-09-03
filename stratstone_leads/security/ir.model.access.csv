@@ -1,2 +1,3 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_meta_leadads_fetch_wizard,access.meta.leadads.fetch.wizard,model_meta_leadads_fetch_wizard,base.group_user,1,1,1,1
+access_ninetynine_acres_raw_log,access.ninetynine.acres.raw.log,model_ninetynine_acres_raw_log,base.group_user,1,1,1,1
