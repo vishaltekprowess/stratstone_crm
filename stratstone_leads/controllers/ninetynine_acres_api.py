@@ -105,25 +105,98 @@ class NinetyNineAcresWebhookController(http.Controller):
             registry = request.env.registry
             with registry.cursor() as cr:
                 env = request.env(cr=cr, user=1)
+
+                # --- Store raw payload ---------------------------------
                 log_record = env['ninetynine.acres.raw.log'].create(vals)
                 log_id = log_record.id
 
-            _logger.info(
-                "99acres webhook: stored raw payload  id=%s  ip=%s  type=%s",
-                log_id,
-                vals['source_ip'],
-                content_type,
-            )
+                # --- Parse payload & create CRM lead -------------------
+                try:
+                    data = json.loads(raw_body) if raw_body else {}
 
-            return Response(
-                json.dumps({
-                    'status': 'success',
-                    'message': 'Payload received and stored.',
-                    'log_id': log_id,
-                }),
-                status=200,
-                content_type='application/json',
-            )
+                    name = (data.get('Name') or '').strip()
+                    email = (data.get('Email') or '').strip()
+                    mobile = (data.get('Mobile') or '').strip()
+                    notes = (data.get('notes') or '').strip()
+                    project = (data.get('Project') or '').strip()
+
+                    # Build lead name: "Name - Project" or just "Name"
+                    lead_name_parts = []
+                    if name:
+                        lead_name_parts.append(name)
+                    if project:
+                        lead_name_parts.append(project)
+                    lead_name = ' - '.join(lead_name_parts) or '99acres Lead'
+
+                    # UTM source → "99acres"
+                    utm_source = env['utm.source'].search(
+                        [('name', '=', '99acres')], limit=1)
+                    if not utm_source:
+                        utm_source = env['utm.source'].create(
+                            {'name': '99acres'})
+
+                    # Round-robin salesperson assignment
+                    user_id, team_id = (
+                        env['crm.lead']._get_next_round_robin_salesperson()
+                    )
+
+                    lead_vals = {
+                        'type': 'opportunity',
+                        'name': lead_name,
+                        'contact_name': name or False,
+                        'phone': mobile or False,
+                        'email_from': email or False,
+                        'description': notes or False,
+                        'source_id': utm_source.id,
+                        'user_id': user_id,
+                        'team_id': team_id,
+                    }
+                    lead = env['crm.lead'].create(lead_vals)
+
+                    # Link lead to the raw log record
+                    log_record.write({
+                        'state': 'processed',
+                        'lead_id': lead.id,
+                    })
+
+                    _logger.info(
+                        "99acres webhook: lead created  id=%s  name=%s  "
+                        "phone=%s  email=%s  log_id=%s",
+                        lead.id, lead_name, mobile, email, log_id,
+                    )
+
+                    return Response(
+                        json.dumps({
+                            'status': 'success',
+                            'message': 'Lead created successfully.',
+                            'lead_id': lead.id,
+                            'log_id': log_id,
+                        }),
+                        status=200,
+                        content_type='application/json',
+                    )
+
+                except Exception as lead_err:
+                    _logger.exception(
+                        "99acres webhook: payload stored (id=%s) but lead "
+                        "creation failed: %s", log_id, lead_err,
+                    )
+                    log_record.write({
+                        'state': 'error',
+                        'error_message': str(lead_err),
+                    })
+                    return Response(
+                        json.dumps({
+                            'status': 'partial',
+                            'message': (
+                                'Payload stored but lead creation failed: '
+                                + str(lead_err)
+                            ),
+                            'log_id': log_id,
+                        }),
+                        status=200,
+                        content_type='application/json',
+                    )
 
         except Exception as e:
             _logger.exception("99acres webhook error: %s", e)
