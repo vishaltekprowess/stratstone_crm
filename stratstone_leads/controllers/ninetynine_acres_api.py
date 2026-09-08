@@ -135,11 +135,6 @@ class NinetyNineAcresWebhookController(http.Controller):
                         utm_source = env['utm.source'].create(
                             {'name': '99acres'})
 
-                    # Round-robin salesperson assignment
-                    user_id, team_id = (
-                        env['crm.lead']._get_next_round_robin_salesperson()
-                    )
-
                     lead_vals = {
                         'type': 'opportunity',
                         'name': lead_name,
@@ -148,8 +143,6 @@ class NinetyNineAcresWebhookController(http.Controller):
                         'email_from': email or False,
                         'description': notes or False,
                         'source_id': utm_source.id,
-                        'user_id': user_id,
-                        'team_id': team_id,
                     }
                     lead = env['crm.lead'].create(lead_vals)
 
