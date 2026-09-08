@@ -143,6 +143,8 @@ class NinetyNineAcresWebhookController(http.Controller):
                         'email_from': email or False,
                         'description': notes or False,
                         'source_id': utm_source.id,
+                        'user_id': False,
+                        'team_id': False,
                     }
                     lead = env['crm.lead'].create(lead_vals)
 
