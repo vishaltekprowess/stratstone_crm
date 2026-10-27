@@ -37,10 +37,30 @@
                 <field name="possession"/>
                 <field name="location"/>
             </xpath>
+
+            <!-- Extra Information: Add Lost Reason field -->
+            <xpath expr="//page[@name='lead']//group[@name='Misc']" position="inside">
+                <field name="lost_reason" placeholder="e.g. Already booked elsewhere, Not interested, etc."/>
+            </xpath>
+            <xpath expr="//page[@name='extra']//group[@name='categorization']" position="inside">
+                <field name="lost_reason" placeholder="e.g. Already booked elsewhere, Not interested, etc."/>
+            </xpath>
         </field>
     </record>
 
-    <!-- Search View Inheritance for Group By BHK -->
+    <!-- List View Inheritance for Lost Reason -->
+    <record id="crm_case_tree_view_oppor_inherit_stratstone" model="ir.ui.view">
+        <field name="name">crm.lead.list.opportunity.inherit.stratstone</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_case_tree_view_oppor"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='stage_id']" position="after">
+                <field name="lost_reason" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Search View Inheritance for Group By BHK and Lost Reason -->
     <record id="crm_lead_view_search_inherit_stratstone" model="ir.ui.view">
         <field name="name">crm.lead.search.inherit.stratstone</field>
         <field name="model">crm.lead</field>
@@ -48,10 +68,24 @@
         <field name="arch" type="xml">
             <xpath expr="//search" position="inside">
                 <field name="bhk" string="BHK"/>
+                <field name="lost_reason" string="Lost Reason"/>
             </xpath>
             <xpath expr="//group" position="inside">
                 <filter string="BHK" name="groupby_bhk" context="{'group_by': 'bhk'}"/>
+                <filter string="Lost Reason" name="groupby_lost_reason" context="{'group_by': 'lost_reason'}"/>
             </xpath>
+        </field>
+    </record>
+
+    <!-- Server Action in List/Form view: Backfill Lost Reason from Chatter -->
+    <record id="action_server_backfill_lost_reasons" model="ir.actions.server">
+        <field name="name">Backfill Lost Reason from Chatter</field>
+        <field name="model_id" ref="crm.model_crm_lead"/>
+        <field name="binding_model_id" ref="crm.model_crm_lead"/>
+        <field name="binding_view_types">list,form</field>
+        <field name="state">code</field>
+        <field name="code">
+action = records.action_backfill_lost_reasons()
         </field>
     </record>
 </odoo>

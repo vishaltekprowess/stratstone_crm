@@ -1,10 +1,12 @@
 from odoo import api, fields, models, _
+from odoo.tools import html2plaintext
 import requests
 from datetime import datetime, timedelta, timezone, time, date
 from odoo.exceptions import UserError
 import json
 import logging
 import pytz
+import re
 
 _logger = logging.getLogger(__name__)
 
@@ -62,6 +64,7 @@ class CrmLead(models.Model):
     ], string="BHK")
     possession = fields.Char(string="Possession")
     location = fields.Char(string="Location")
+    lost_reason = fields.Char(string="Lost Reason", tracking=True)
 
     _sql_constraints = [
         ('uniq_meta_lead_id', 'unique(meta_lead_id)',
@@ -554,4 +557,159 @@ class CrmLead(models.Model):
         if bhk_val in valid_keys:
             return bhk_val
         return False
+
+    # ------------------------------------------------------------------
+    # Lost Reason & Chatter Sync Helpers
+    # ------------------------------------------------------------------
+    @api.model
+    def _clean_log_note_text(self, raw_html_or_text):
+        """Extract clean single-line plain text from chatter message body."""
+        if not raw_html_or_text:
+            return ''
+        from html import unescape
+        text = html2plaintext(str(raw_html_or_text)).strip()
+        text = unescape(text)
+        # Strip any remaining tags if html was entity-escaped
+        if '<' in text and '>' in text:
+            clean_re = re.compile(r'<[^>]+>')
+            text = clean_re.sub(' ', text)
+        text = ' '.join(text.split()).strip()
+        if text.lower().startswith('a new lead has been created'):
+            return ''
+        return text
+
+    def _find_recent_lost_note(self):
+        """Find the most recent internal log note on this lead."""
+        self.ensure_one()
+        note_subtype = self.env.ref('mail.mt_note', raise_if_not_found=False)
+        domain = [
+            ('model', '=', 'crm.lead'),
+            ('res_id', '=', self.id),
+        ]
+        if note_subtype:
+            domain += ['|', ('subtype_id', '=', note_subtype.id), ('message_type', '=', 'comment')]
+        else:
+            domain.append(('message_type', '=', 'comment'))
+
+        messages = self.env['mail.message'].sudo().search(
+            domain, order='id desc', limit=5
+        )
+        for msg in messages:
+            if msg.body:
+                text = self._clean_log_note_text(msg.body)
+                if text:
+                    return text
+        return False
+
+    def write(self, vals):
+        res = super().write(vals)
+        # When stage is changed to Lost and no explicit lost_reason is provided,
+        # try to auto-populate from recent log note.
+        if 'stage_id' in vals and 'lost_reason' not in vals:
+            for lead in self:
+                if lead.stage_id and 'lost' in (lead.stage_id.name or '').lower():
+                    if not lead.lost_reason:
+                        recent_note = lead._find_recent_lost_note()
+                        if recent_note:
+                            lead.with_context(mail_post_autofill=True).lost_reason = recent_note
+        return res
+
+    def message_post(self, **kwargs):
+        message = super().message_post(**kwargs)
+        if not self.env.context.get('mail_post_autofill'):
+            for lead in self:
+                # If lead is in Lost stage and a comment/note is posted, sync to lost_reason
+                if lead.stage_id and 'lost' in (lead.stage_id.name or '').lower():
+                    body = kwargs.get('body') or (message.body if message else '')
+                    subtype_id = kwargs.get('subtype_id')
+                    subtype_xmlid = kwargs.get('subtype_xmlid')
+                    msg_type = kwargs.get('message_type') or (message.message_type if message else '')
+
+                    is_note = False
+                    if subtype_xmlid == 'mail.mt_note':
+                        is_note = True
+                    elif subtype_id:
+                        note_subtype = self.env.ref('mail.mt_note', raise_if_not_found=False)
+                        if note_subtype and subtype_id == note_subtype.id:
+                            is_note = True
+                    elif msg_type == 'comment':
+                        is_note = True
+
+                    if is_note and body:
+                        text = lead._clean_log_note_text(body)
+                        if text and lead.lost_reason != text:
+                            lead.with_context(mail_post_autofill=True).lost_reason = text
+        return message
+
+    def action_backfill_lost_reasons(self):
+        """Backfill lost_reason from chatter log notes for selected or all lost leads."""
+        if self:
+            # If records were selected in list view, process those
+            lost_leads = self.filtered(
+                lambda l: (not l.lost_reason) and l.stage_id and ('lost' in (l.stage_id.name or '').lower())
+            )
+            if not lost_leads:
+                lost_leads = self.filtered(lambda l: l.stage_id and ('lost' in (l.stage_id.name or '').lower()))
+        else:
+            lost_leads = self.search([
+                ('stage_id.name', 'ilike', 'Lost'),
+                ('lost_reason', '=', False),
+            ])
+
+        updated_count = 0
+        for lead in lost_leads:
+            self.env.cr.execute('''
+                SELECT m.id, m.date, m.body, m.message_type, m.subtype_id,
+                       t.old_value_char, t.new_value_char
+                FROM mail_message m
+                LEFT JOIN mail_tracking_value t ON t.mail_message_id = m.id
+                WHERE m.model = 'crm.lead' AND m.res_id = %s
+                ORDER BY m.id ASC;
+            ''', (lead.id,))
+            msgs = self.env.cr.fetchall()
+
+            lost_msg_idx = -1
+            for idx, m in enumerate(msgs):
+                if m[6] and 'lost' in m[6].lower():
+                    lost_msg_idx = idx
+                    break
+
+            reason_note = None
+            if lost_msg_idx != -1:
+                lost_msg_date = msgs[lost_msg_idx][1]
+                candidate_comments = []
+                for idx, m in enumerate(msgs):
+                    if m[3] == 'comment' and m[2]:
+                        txt = lead._clean_log_note_text(m[2])
+                        if txt:
+                            diff_sec = abs((m[1] - lost_msg_date).total_seconds())
+                            candidate_comments.append((diff_sec, txt))
+                if candidate_comments:
+                    candidate_comments.sort(key=lambda x: x[0])
+                    reason_note = candidate_comments[0][1]
+            else:
+                for m in reversed(msgs):
+                    if m[3] == 'comment' and m[2]:
+                        txt = lead._clean_log_note_text(m[2])
+                        if txt:
+                            reason_note = txt
+                            break
+
+            if reason_note:
+                lead.with_context(mail_post_autofill=True).write({'lost_reason': reason_note})
+                updated_count += 1
+
+        _logger.info("Backfilled lost_reason on %s leads", updated_count)
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _('Lost Reason Backfill Complete'),
+                'message': _('Successfully backfilled lost reason for %s lead(s).') % updated_count,
+                'type': 'success',
+                'sticky': False,
+                'next': {'type': 'ir.actions.client', 'tag': 'reload'},
+            }
+        }
+
 
