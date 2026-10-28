@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Form View -->
+    <record id="view_meta_leadads_page_form" model="ir.ui.view">
+        <field name="name">meta.leadads.page.form</field>
+        <field name="model">meta.leadads.page</field>
+        <field name="arch" type="xml">
+            <form string="Meta Facebook Page">
+                <header>
+                    <button name="action_sync_now"
+                            type="object"
+                            string="Sync Leads Now"
+                            class="btn-primary"
+                            icon="fa-refresh"/>
+                    <button name="action_test_connection"
+                            type="object"
+                            string="Test Connection"
+                            class="btn-secondary"
+                            icon="fa-plug"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_leads"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-bullhorn">
+                            <field name="lead_count" widget="statinfo" string="Leads"/>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+                    <div class="oe_title">
+                        <label for="name" string="Page Name / Label"/>
+                        <h1>
+                            <field name="name" placeholder="e.g. Stratstone Prime - Facebook Page"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Page Credentials">
+                            <field name="page_id" placeholder="e.g. 102938475612345"/>
+                            <field name="access_token" widget="password"/>
+                            <field name="active" widget="boolean_toggle"/>
+                        </group>
+                        <group string="Leadgen Forms">
+                            <field name="sync_all_forms"/>
+                            <field name="form_ids"
+                                   invisible="sync_all_forms"
+                                   placeholder="e.g. 103976261614743, 705986448913842"/>
+                        </group>
+                    </group>
+                    <group string="Lead Routing Defaults (Optional)">
+                        <group>
+                            <field name="team_id" options="{'no_create': True}"/>
+                            <field name="user_id" options="{'no_create': True}"/>
+                        </group>
+                        <group>
+                            <field name="campaign_id" options="{'no_create': True}"/>
+                            <field name="source_id" options="{'no_create': True}"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Sync Status &amp; Logs" name="sync_status">
+                            <group>
+                                <field name="last_sync_date"/>
+                                <field name="last_sync_status"
+                                       widget="badge"
+                                       decoration-success="last_sync_status == 'success'"
+                                       decoration-danger="last_sync_status == 'error'"/>
+                            </group>
+                            <group string="Last Message">
+                                <field name="last_sync_message" nolabel="1" readonly="1"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- List (Tree) View -->
+    <record id="view_meta_leadads_page_tree" model="ir.ui.view">
+        <field name="name">meta.leadads.page.list</field>
+        <field name="model">meta.leadads.page</field>
+        <field name="arch" type="xml">
+            <list string="Meta Facebook Pages">
+                <field name="name"/>
+                <field name="page_id"/>
+                <field name="sync_all_forms"/>
+                <field name="team_id" optional="show"/>
+                <field name="user_id" optional="show"/>
+                <field name="lead_count"/>
+                <field name="last_sync_date"/>
+                <field name="last_sync_status"
+                       widget="badge"
+                       decoration-success="last_sync_status == 'success'"
+                       decoration-danger="last_sync_status == 'error'"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="view_meta_leadads_page_search" model="ir.ui.view">
+        <field name="name">meta.leadads.page.search</field>
+        <field name="model">meta.leadads.page</field>
+        <field name="arch" type="xml">
+            <search string="Search Meta Pages">
+                <field name="name"/>
+                <field name="page_id"/>
+                <field name="team_id"/>
+                <separator/>
+                <filter string="Active" name="active" domain="[('active', '=', True)]"/>
+                <filter string="Archived" name="inactive" domain="[('active', '=', False)]"/>
+                <separator/>
+                <filter string="Sync Error" name="sync_error" domain="[('last_sync_status', '=', 'error')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Sales Team" name="group_team" domain="[]" context="{'group_by': 'team_id'}"/>
+                    <filter string="Sync Status" name="group_status" domain="[]" context="{'group_by': 'last_sync_status'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_meta_leadads_page" model="ir.actions.act_window">
+        <field name="name">Meta Facebook Pages</field>
+        <field name="res_model">meta.leadads.page</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_active': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Configure your first Meta Facebook Page!
+            </p>
+            <p>
+                Add Facebook Pages to automatically sync leads from Meta Lead Ads campaigns into Odoo CRM.
+                Each page can have its own access token, lead forms, and sales routing rules.
+            </p>
+        </field>
+    </record>
+
+    <!-- Menuitem under CRM Configuration -->
+    <menuitem id="menu_meta_leadads_page"
+              name="Meta Facebook Pages"
+              parent="crm.crm_menu_config"
+              action="action_meta_leadads_page"
+              sequence="15"/>
+</odoo>

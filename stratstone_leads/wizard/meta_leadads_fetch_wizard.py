@@ -6,6 +6,11 @@ class MetaLeadadsFetchWizard(models.TransientModel):
     _name = 'meta.leadads.fetch.wizard'
     _description = 'Fetch Meta Lead Ads (Date Range)'
 
+    meta_page_id = fields.Many2one(
+        'meta.leadads.page',
+        string="Meta Page",
+        help="Select a specific Meta Page, or leave empty to fetch for all active pages.",
+    )
     date_from = fields.Date(
         required=True,
         default=lambda self: fields.Date.context_today(self),
@@ -26,10 +31,12 @@ class MetaLeadadsFetchWizard(models.TransientModel):
     def action_fetch(self):
         """Trigger a Meta Lead Ads sync for the selected date range."""
         self.ensure_one()
+        page_ids = [self.meta_page_id.id] if self.meta_page_id else None
         res = self.env['crm.lead'].sudo().with_context(
             meta_date_from=self.date_from,
             meta_date_to=self.date_to,
-        ).meta_leadads_sync_leads()
+            meta_manual_sync=True,
+        ).meta_leadads_sync_leads(page_ids=page_ids)
         return {
             'type': 'ir.actions.client',
             'tag': 'display_notification',
@@ -46,3 +53,4 @@ class MetaLeadadsFetchWizard(models.TransientModel):
                 'type': 'success',
             }
         }
+

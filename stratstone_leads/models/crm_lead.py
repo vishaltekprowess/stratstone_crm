@@ -22,6 +22,13 @@ class CrmLead(models.Model):
     meta_lead_id = fields.Char(
         string="Meta Lead ID", index=True, readonly=True, copy=False,
     )
+    meta_page_id = fields.Many2one(
+        'meta.leadads.page',
+        string="Meta Page",
+        index=True,
+        readonly=True,
+        copy=False,
+    )
     meta_form_id = fields.Char(
         string="Meta Form ID", index=True, readonly=True, copy=False,
     )
@@ -166,12 +173,16 @@ class CrmLead(models.Model):
     # Form listing (manual helper)
     # ------------------------------------------------------------------
     @api.model
-    def meta_leadads_list_forms(self):
-        """Fetch ALL forms for configured page_id."""
-        page_id, access_token, _form_ids = self._meta_leadads_get_config()
-        if not page_id:
-            raise UserError(_("Meta Page ID is not configured."))
-        page_token = self._meta_get_page_access_token(page_id, access_token)
+    def meta_leadads_list_forms(self, page=None):
+        """Fetch ALL forms for given page or configured page_id."""
+        if page:
+            page_id = page.page_id
+            page_token = page._get_page_access_token()
+        else:
+            page_id, access_token, _form_ids = self._meta_leadads_get_config()
+            if not page_id:
+                raise UserError(_("Meta Page ID is not configured."))
+            page_token = self._meta_get_page_access_token(page_id, access_token)
         forms = list(self._meta_graph_paged(
             f"{page_id}/leadgen_forms",
             page_token,
@@ -264,19 +275,20 @@ class CrmLead(models.Model):
         return med.id
 
     @api.model
-    def _get_next_round_robin_salesperson(self):
+    def _get_next_round_robin_salesperson(self, team=None):
         """
         Get the next salesperson and sales team for round-robin lead assignment.
-        Target Sales Team: sales_team.team_sales_department (or crm.team search fallback)
+        Target Sales Team: team (if provided), or sales_team.team_sales_department (or crm.team search fallback)
         Returns: (user_id or False, team_id or False)
         """
-        team = self.env.ref('sales_team.team_sales_department', raise_if_not_found=False)
         if not team:
-            team = self.env['crm.team'].sudo().search([
-                ('name', 'ilike', 'Sales Department')
-            ], limit=1)
-        if not team:
-            team = self.env['crm.team'].sudo().search([], limit=1)
+            team = self.env.ref('sales_team.team_sales_department', raise_if_not_found=False)
+            if not team:
+                team = self.env['crm.team'].sudo().search([
+                    ('name', 'ilike', 'Sales Department')
+                ], limit=1)
+            if not team:
+                team = self.env['crm.team'].sudo().search([], limit=1)
 
         if not team:
             return False, False
@@ -293,8 +305,10 @@ class CrmLead(models.Model):
         member_ids = sorted(members.ids)
 
         params = self.env['ir.config_parameter'].sudo()
-        param_key = 'stratstone_leads.last_assigned_user_id'
+        param_key = f'stratstone_leads.last_assigned_user_id_{team.id}' if team else 'stratstone_leads.last_assigned_user_id'
         last_assigned_id_raw = params.get_param(param_key, default=False)
+        if not last_assigned_id_raw and team:
+            last_assigned_id_raw = params.get_param('stratstone_leads.last_assigned_user_id', default=False)
 
         last_assigned_id = int(last_assigned_id_raw) if last_assigned_id_raw and str(last_assigned_id_raw).isdigit() else 0
 
@@ -306,6 +320,7 @@ class CrmLead(models.Model):
 
         next_user_id = member_ids[next_index]
         params.set_param(param_key, str(next_user_id))
+        params.set_param('stratstone_leads.last_assigned_user_id', str(next_user_id))
 
         return next_user_id, team.id
 
@@ -313,30 +328,42 @@ class CrmLead(models.Model):
     # Main sync logic
     # ------------------------------------------------------------------
     @api.model
-    def meta_leadads_sync_leads(self, limit=25, max_pages=50):
+    def meta_leadads_sync_leads(self, page_ids=None, limit=25, max_pages=50):
         """
-        Sync leads for configured form ids:
+        Sync leads across configured Meta Facebook Pages:
         GET /{form_id}/leads?fields=created_time,id,ad_id,form_id,field_data
         """
-        page_id, access_token, form_ids = self._meta_leadads_get_config()
-        if not access_token:
-            raise UserError(
-                _("Meta access token is not configured in Settings."))
+        PageModel = self.env['meta.leadads.page'].sudo()
 
-        # Prefer using a Page token for leadgen endpoints.
-        page_token = self._meta_get_page_access_token(page_id, access_token)
+        # Auto-migration check: If no meta.leadads.page exists, check legacy config
+        if not PageModel.search_count([]):
+            legacy_page_id, legacy_token, legacy_forms = self._meta_leadads_get_config()
+            if legacy_page_id and legacy_token:
+                try:
+                    PageModel.create({
+                        'name': 'Primary Facebook Page',
+                        'page_id': legacy_page_id,
+                        'access_token': legacy_token,
+                        'sync_all_forms': not bool(legacy_forms),
+                        'form_ids': ','.join(legacy_forms) if legacy_forms else False,
+                    })
+                except Exception as e:
+                    _logger.warning("Could not auto-migrate legacy Meta settings: %s", e)
 
-        if not form_ids:
-            if not page_id:
-                raise UserError(
-                    _("Meta Page ID is not configured in Settings."))
-            forms = self.meta_leadads_list_forms()
-            form_ids = [f.get('id') for f in forms if f.get('id')]
-            if not form_ids:
-                raise UserError(
-                    _("No leadgen forms found for this Meta Page ID."))
+        domain = [('active', '=', True)]
+        if page_ids:
+            domain.append(('id', 'in', page_ids))
+        pages = PageModel.search(domain)
 
-        # Optional date range filtering (inclusive)
+        if not pages:
+            if self.env.context.get('meta_manual_sync'):
+                raise UserError(_(
+                    "No active Meta Facebook Pages found. "
+                    "Please configure a page in CRM > Configuration > Meta Facebook Pages."
+                ))
+            return {"created": 0, "updated": 0, "skipped": 0, "errors": 0}
+
+        # Date range filtering (inclusive)
         date_from = self.env.context.get('meta_date_from')
         date_to = self.env.context.get('meta_date_to')
         start_dt_utc = end_dt_utc = False
@@ -364,159 +391,209 @@ class CrmLead(models.Model):
             tz = pytz.timezone(tzname)
             local_start = tz.localize(datetime.combine(date_from, time.min))
             local_end = tz.localize(datetime.combine(date_to, time.max))
-            start_dt_utc = local_start.astimezone(pytz.UTC).replace(
-                tzinfo=None)
+            start_dt_utc = local_start.astimezone(pytz.UTC).replace(tzinfo=None)
             end_dt_utc = local_end.astimezone(pytz.UTC).replace(tzinfo=None)
 
-        params_store = self.env['ir.config_parameter'].sudo()
-        last_sync_dt = False
-        if not (start_dt_utc and end_dt_utc):
-            last_sync_raw = params_store.get_param(
-                'stratstone_leads.meta_leadads_last_sync') or ''
-            if isinstance(last_sync_raw, bool):
-                last_sync_raw = ''
-            last_sync_raw = str(last_sync_raw).strip()
-            if last_sync_raw:
-                try:
-                    last_sync_dt = fields.Datetime.from_string(last_sync_raw)
-                except Exception:
-                    last_sync_dt = False
+        fb_source = self.env.ref('utm.utm_source_facebook', raise_if_not_found=False)
 
-        created = 0
-        updated = 0
-        skipped = 0
+        total_created = 0
+        total_updated = 0
+        total_skipped = 0
+        sync_errors = []
 
-        # Always attribute Meta imports to Facebook UTM source
-        fb_source = self.env.ref(
-            'utm.utm_source_facebook', raise_if_not_found=False)
+        for page in pages:
+            page_created = 0
+            page_updated = 0
+            page_skipped = 0
+            try:
+                page_token = page._get_page_access_token()
+                if not page_token:
+                    raise UserError(_("No access token found for page %s") % page.name)
 
-        for form_id in form_ids:
-            after = None
-            pages = 0
-            stop_for_form = False
-            while not stop_for_form and pages < max_pages:
-                q = {
-                    "fields": "created_time,id,ad_id,ad_name,adset_id,adset_name,campaign_id,campaign_name,form_id,form_name,field_data",
-                    "limit": int(limit),
-                }
-                if after:
-                    q["after"] = after
-                data = self._meta_graph_get(
-                    f"{form_id}/leads", page_token, params=q)
-                leads = data.get('data') or []
+                # Determine form IDs for this page
+                if not page.sync_all_forms and page.form_ids:
+                    form_ids = [x.strip() for x in page.form_ids.split(',') if x.strip()]
+                else:
+                    forms = self.meta_leadads_list_forms(page=page)
+                    form_ids = [f.get('id') for f in forms if f.get('id')]
 
-                for lead_json in leads:
-                    meta_lead_id = lead_json.get('id')
-                    if not meta_lead_id:
-                        continue
+                if not form_ids:
+                    _logger.info("No leadgen forms found for Meta Page %s (ID: %s)", page.name, page.page_id)
+                    page.sudo().write({
+                        'last_sync_date': fields.Datetime.now(),
+                        'last_sync_status': 'success',
+                        'last_sync_message': _("No leadgen forms found for this page."),
+                    })
+                    continue
 
-                    created_time = self._meta_parse_created_time(
-                        lead_json.get('created_time'))
-                    if created_time:
-                        if start_dt_utc and end_dt_utc:
-                            if created_time < start_dt_utc:
-                                stop_for_form = True
-                                break
-                            if created_time > end_dt_utc:
-                                skipped += 1
+                # Incremental sync timestamp (per-page, fallback to page.last_sync_date)
+                last_sync_dt = False
+                if not (start_dt_utc and end_dt_utc) and page.last_sync_date:
+                    last_sync_dt = page.last_sync_date
+
+                for form_id in form_ids:
+                    after = None
+                    p_num = 0
+                    stop_for_form = False
+                    while not stop_for_form and p_num < max_pages:
+                        q = {
+                            "fields": "created_time,id,ad_id,ad_name,adset_id,adset_name,campaign_id,campaign_name,form_id,form_name,field_data",
+                            "limit": int(limit),
+                        }
+                        if after:
+                            q["after"] = after
+
+                        data = self._meta_graph_get(f"{form_id}/leads", page_token, params=q)
+                        leads = data.get('data') or []
+
+                        for lead_json in leads:
+                            meta_lead_id = lead_json.get('id')
+                            if not meta_lead_id:
                                 continue
-                        elif last_sync_dt and created_time <= last_sync_dt:
-                            stop_for_form = True
+
+                            created_time = self._meta_parse_created_time(lead_json.get('created_time'))
+                            if created_time:
+                                if start_dt_utc and end_dt_utc:
+                                    if created_time < start_dt_utc:
+                                        stop_for_form = True
+                                        break
+                                    if created_time > end_dt_utc:
+                                        page_skipped += 1
+                                        continue
+                                elif last_sync_dt and created_time <= last_sync_dt:
+                                    stop_for_form = True
+                                    break
+
+                            fields_map = self._meta_field_data_to_dict(lead_json.get('field_data'))
+
+                            # Generic field extraction
+                            full_name = fields_map.get('full_name') or fields_map.get('name')
+                            email = fields_map.get('email')
+                            phone = fields_map.get('phone_number') or fields_map.get('phone')
+                            city = fields_map.get('city')
+                            zip_code = fields_map.get('zip_code') or fields_map.get('zip')
+                            bhk_val = fields_map.get('bhk') or fields_map.get('configuration')
+                            possession_val = fields_map.get('possession') or fields_map.get('posation')
+
+                            lead_name = full_name or f"Meta Lead {meta_lead_id}"
+
+                            existing = self.search([('meta_lead_id', '=', meta_lead_id)], limit=1)
+
+                            if existing:
+                                user_id = existing.user_id.id if existing.user_id else False
+                                team_id = existing.team_id.id if existing.team_id else False
+                                if not user_id:
+                                    if page.user_id:
+                                        user_id = page.user_id.id
+                                        team_id = page.team_id.id if page.team_id else (team_id or False)
+                                    else:
+                                        user_id, team_id = self._get_next_round_robin_salesperson(team=page.team_id)
+                            else:
+                                if page.user_id:
+                                    user_id = page.user_id.id
+                                    team_id = page.team_id.id if page.team_id else False
+                                else:
+                                    user_id, team_id = self._get_next_round_robin_salesperson(team=page.team_id)
+
+                            campaign_name = lead_json.get('campaign_name')
+                            if campaign_name:
+                                campaign_id = self._meta_get_or_create_utm_campaign(campaign_name)
+                            elif page.campaign_id:
+                                campaign_id = page.campaign_id.id
+                            else:
+                                campaign_id = False
+
+                            medium_id = self._meta_get_or_create_utm_medium('Paid Social')
+
+                            if page.source_id:
+                                source_id = page.source_id.id
+                            elif fb_source:
+                                source_id = fb_source.id
+                            else:
+                                source_id = self._meta_get_or_create_utm_source('Facebook')
+
+                            vals = {
+                                "type": "opportunity",
+                                "name": lead_name,
+                                "contact_name": full_name,
+                                "email_from": email,
+                                "phone": phone,
+                                "city": city,
+                                "zip": zip_code,
+                                "bhk": self._normalize_bhk_selection(bhk_val),
+                                "possession": possession_val or False,
+                                "user_id": user_id,
+                                "team_id": team_id,
+                                "campaign_id": campaign_id,
+                                "medium_id": medium_id,
+                                "source_id": source_id,
+                                "meta_page_id": page.id,
+                                "meta_lead_id": meta_lead_id,
+                                "meta_form_id": lead_json.get('form_id') or form_id,
+                                "meta_ad_id": lead_json.get('ad_id'),
+                                "meta_ad_name": lead_json.get('ad_name'),
+                                "meta_adset_id": lead_json.get('adset_id'),
+                                "meta_adset_name": lead_json.get('adset_name'),
+                                "meta_campaign_id": lead_json.get('campaign_id'),
+                                "meta_campaign_name": campaign_name,
+                                "meta_created_time": created_time,
+                                "meta_raw_payload": json.dumps(lead_json, ensure_ascii=False),
+                                "description": self._meta_build_description(lead_json, fields_map),
+                            }
+
+                            if existing:
+                                existing.write(vals)
+                                page_updated += 1
+                            else:
+                                try:
+                                    self.create(vals)
+                                    page_created += 1
+                                except Exception as e:
+                                    _logger.warning("Meta lead create failed for %s: %s", meta_lead_id, e)
+                                    page_skipped += 1
+
+                        paging = (data or {}).get('paging') or {}
+                        cursors = paging.get('cursors') or {}
+                        after = cursors.get('after')
+                        p_num += 1
+                        if not after:
                             break
 
-                    fields_map = self._meta_field_data_to_dict(
-                        lead_json.get('field_data'))
+                page.sudo().write({
+                    'last_sync_date': fields.Datetime.now(),
+                    'last_sync_status': 'success',
+                    'last_sync_message': f'Created: {page_created}, Updated: {page_updated}, Skipped: {page_skipped}',
+                })
 
-                    # Generic field extraction
-                    full_name = (fields_map.get('full_name')
-                                 or fields_map.get('name'))
-                    email = fields_map.get('email')
-                    phone = (fields_map.get('phone_number')
-                             or fields_map.get('phone'))
-                    city = fields_map.get('city')
-                    zip_code = (fields_map.get('zip_code')
-                                or fields_map.get('zip'))
-                    bhk_val = (fields_map.get('bhk')
-                               or fields_map.get('configuration'))
-                    possession_val = (fields_map.get('possession')
-                                      or fields_map.get('posation'))
+            except Exception as e:
+                err_msg = str(e)
+                _logger.error("Meta sync error for page %s (%s): %s", page.name, page.page_id, err_msg)
+                page.sudo().write({
+                    'last_sync_date': fields.Datetime.now(),
+                    'last_sync_status': 'error',
+                    'last_sync_message': err_msg,
+                })
+                sync_errors.append(f"{page.name}: {err_msg}")
 
-                    lead_name = full_name or f"Meta Lead {meta_lead_id}"
+            total_created += page_created
+            total_updated += page_updated
+            total_skipped += page_skipped
 
-                    existing = self.search(
-                        [('meta_lead_id', '=', meta_lead_id)], limit=1)
-
-                    if existing:
-                        user_id = existing.user_id.id if existing.user_id else False
-                        team_id = existing.team_id.id if existing.team_id else False
-                        if not user_id:
-                            user_id, team_id = self._get_next_round_robin_salesperson()
-                    else:
-                        user_id, team_id = self._get_next_round_robin_salesperson()
-
-                    campaign_name = lead_json.get('campaign_name')
-                    campaign_id = self._meta_get_or_create_utm_campaign(campaign_name) if campaign_name else False
-                    medium_id = self._meta_get_or_create_utm_medium('Paid Social')
-
-                    vals = {
-                        "type": "opportunity",
-                        "name": lead_name,
-                        "contact_name": full_name,
-                        "email_from": email,
-                        "phone": phone,
-                        "city": city,
-                        "zip": zip_code,
-                        "bhk": self._normalize_bhk_selection(bhk_val),
-                        "possession": possession_val or False,
-                        "user_id": user_id,
-                        "team_id": team_id,
-                        "campaign_id": campaign_id,
-                        "medium_id": medium_id,
-                        "source_id": (
-                            fb_source.id if fb_source
-                            else self._meta_get_or_create_utm_source(
-                                'Facebook')),
-                        "meta_lead_id": meta_lead_id,
-                        "meta_form_id": (lead_json.get('form_id')
-                                         or form_id),
-                        "meta_ad_id": lead_json.get('ad_id'),
-                        "meta_ad_name": lead_json.get('ad_name'),
-                        "meta_adset_id": lead_json.get('adset_id'),
-                        "meta_adset_name": lead_json.get('adset_name'),
-                        "meta_campaign_id": lead_json.get('campaign_id'),
-                        "meta_campaign_name": campaign_name,
-                        "meta_created_time": created_time,
-                        "meta_raw_payload": json.dumps(
-                            lead_json, ensure_ascii=False),
-                        "description": self._meta_build_description(
-                            lead_json, fields_map),
-                    }
-
-                    if existing:
-                        existing.write(vals)
-                        updated += 1
-                    else:
-                        try:
-                            self.create(vals)
-                            created += 1
-                        except Exception as e:
-                            _logger.warning(
-                                "Meta lead create failed for %s: %s",
-                                meta_lead_id, e)
-                            skipped += 1
-
-                paging = (data or {}).get('paging') or {}
-                cursors = paging.get('cursors') or {}
-                after = cursors.get('after')
-                pages += 1
-                if not after:
-                    break
-
-        # Update last_sync timestamp for incremental mode.
-        params_store.set_param(
+        # Update legacy parameter for compatibility
+        self.env['ir.config_parameter'].sudo().set_param(
             'stratstone_leads.meta_leadads_last_sync',
-            fields.Datetime.to_string(fields.Datetime.now()))
-        return {"created": created, "updated": updated, "skipped": skipped}
+            fields.Datetime.to_string(fields.Datetime.now()),
+        )
+
+        if sync_errors and self.env.context.get('meta_manual_sync') and not total_created and not total_updated:
+            raise UserError(_("Errors occurred during sync:\n%s") % "\n".join(sync_errors))
+
+        return {
+            "created": total_created,
+            "updated": total_updated,
+            "skipped": total_skipped,
+            "errors": len(sync_errors),
+        }
 
     @api.model
     def _cron_meta_leadads_sync_leads(self):

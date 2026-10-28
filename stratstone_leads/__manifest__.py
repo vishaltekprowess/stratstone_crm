@@ -23,6 +23,7 @@
     'data': [
         'security/ir.model.access.csv',
         'data/cron.xml',
+        'views/meta_leadads_page_views.xml',
         'views/crm_lead_views.xml',
         'views/ninetynine_acres_raw_log_views.xml',
         'wizard/meta_leadads_fetch_wizard.xml',

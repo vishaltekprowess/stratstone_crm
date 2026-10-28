@@ -43,24 +43,26 @@
                 <field name="lost_reason" placeholder="e.g. Already booked elsewhere, Not interested, etc."/>
             </xpath>
             <xpath expr="//page[@name='extra']//group[@name='categorization']" position="inside">
+                <field name="meta_page_id" readonly="1" options="{'no_create': True}"/>
                 <field name="lost_reason" placeholder="e.g. Already booked elsewhere, Not interested, etc."/>
             </xpath>
         </field>
     </record>
 
-    <!-- List View Inheritance for Lost Reason -->
+    <!-- List View Inheritance for Lost Reason and Meta Page -->
     <record id="crm_case_tree_view_oppor_inherit_stratstone" model="ir.ui.view">
         <field name="name">crm.lead.list.opportunity.inherit.stratstone</field>
         <field name="model">crm.lead</field>
         <field name="inherit_id" ref="crm.crm_case_tree_view_oppor"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='stage_id']" position="after">
+                <field name="meta_page_id" optional="hide"/>
                 <field name="lost_reason" optional="show"/>
             </xpath>
         </field>
     </record>
 
-    <!-- Search View Inheritance for Group By BHK and Lost Reason -->
+    <!-- Search View Inheritance for Group By BHK, Lost Reason and Meta Page -->
     <record id="crm_lead_view_search_inherit_stratstone" model="ir.ui.view">
         <field name="name">crm.lead.search.inherit.stratstone</field>
         <field name="model">crm.lead</field>
@@ -69,10 +71,12 @@
             <xpath expr="//search" position="inside">
                 <field name="bhk" string="BHK"/>
                 <field name="lost_reason" string="Lost Reason"/>
+                <field name="meta_page_id" string="Meta Page"/>
             </xpath>
             <xpath expr="//group" position="inside">
                 <filter string="BHK" name="groupby_bhk" context="{'group_by': 'bhk'}"/>
                 <filter string="Lost Reason" name="groupby_lost_reason" context="{'group_by': 'lost_reason'}"/>
+                <filter string="Meta Page" name="groupby_meta_page" context="{'group_by': 'meta_page_id'}"/>
             </xpath>
         </field>
     </record>

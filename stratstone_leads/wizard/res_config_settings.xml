@@ -9,19 +9,16 @@
             <xpath expr="//form" position="inside">
                 <app data-string="Stratstone Leads" string="Stratstone Leads" name="stratstone_leads">
                     <block title="Meta Lead Ads">
-                        <setting id="stratstone_meta_leadads_page_id"
-                                 help="Facebook Page ID that owns the Leadgen Forms.">
-                            <field name="meta_leadads_page_id"/>
+                        <setting id="stratstone_meta_leadads_pages_config"
+                                 help="Manage multiple Facebook Pages with distinct access tokens, forms, and sales routing rules.">
+                            <div class="content-group">
+                                <button type="action"
+                                        name="%(stratstone_leads.action_meta_leadads_page)d"
+                                        string="Manage Meta Facebook Pages"
+                                        class="btn btn-outline-primary"/>
+                            </div>
                         </setting>
-                        <setting id="stratstone_meta_leadads_access_token"
-                                 help="Long-lived Page access token for reading Lead Ads.">
-                            <field name="meta_leadads_access_token" widget="password"/>
-                        </setting>
-                        <setting id="stratstone_meta_leadads_form_ids"
-                                 help="Comma-separated Leadgen Form IDs to sync into CRM Leads.">
-                            <field name="meta_leadads_form_ids"
-                                   placeholder="(optional) 705986448913842,103976261614743,..."/>
-                        </setting>
+
                         <div class="mt16 d-flex flex-wrap gap-2">
                             <button type="object"
                                     name="action_meta_leadads_sync_now"

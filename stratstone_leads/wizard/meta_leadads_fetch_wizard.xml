@@ -6,6 +6,7 @@
         <field name="arch" type="xml">
             <form string="Fetch Meta Leads">
                 <group>
+                    <field name="meta_page_id" placeholder="All Active Pages" options="{'no_create': True}"/>
                     <field name="date_from"/>
                     <field name="date_to"/>
                 </group>
