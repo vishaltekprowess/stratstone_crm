@@ -48,11 +48,15 @@
                         </group>
                     </group>
                     <group string="Lead Routing Defaults (Optional)">
-                        <group>
+                        <group string="Sales Assignment">
+                            <field name="assignment_type" widget="radio"/>
+                            <field name="user_id"
+                                   invisible="assignment_type != 'specific_user'"
+                                   required="assignment_type == 'specific_user'"
+                                   options="{'no_create': True}"/>
                             <field name="team_id" options="{'no_create': True}"/>
-                            <field name="user_id" options="{'no_create': True}"/>
                         </group>
-                        <group>
+                        <group string="Marketing UTM">
                             <field name="campaign_id" options="{'no_create': True}"/>
                             <field name="source_id" options="{'no_create': True}"/>
                         </group>
@@ -85,8 +89,9 @@
                 <field name="name"/>
                 <field name="page_id"/>
                 <field name="sync_all_forms"/>
-                <field name="team_id" optional="show"/>
+                <field name="assignment_type"/>
                 <field name="user_id" optional="show"/>
+                <field name="team_id" optional="show"/>
                 <field name="lead_count"/>
                 <field name="last_sync_date"/>
                 <field name="last_sync_status"
@@ -107,12 +112,15 @@
                 <field name="name"/>
                 <field name="page_id"/>
                 <field name="team_id"/>
+                <field name="user_id"/>
                 <separator/>
                 <filter string="Active" name="active" domain="[('active', '=', True)]"/>
                 <filter string="Archived" name="inactive" domain="[('active', '=', False)]"/>
                 <separator/>
+                <filter string="Unassigned Leads" name="unassigned" domain="[('assignment_type', '=', 'no_assignment')]"/>
                 <filter string="Sync Error" name="sync_error" domain="[('last_sync_status', '=', 'error')]"/>
                 <group expand="0" string="Group By">
+                    <filter string="Salesperson Assignment" name="group_assignment" domain="[]" context="{'group_by': 'assignment_type'}"/>
                     <filter string="Sales Team" name="group_team" domain="[]" context="{'group_by': 'team_id'}"/>
                     <filter string="Sync Status" name="group_status" domain="[]" context="{'group_by': 'last_sync_status'}"/>
                 </group>

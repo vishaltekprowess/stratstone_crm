@@ -47,15 +47,24 @@ class MetaLeadadsPage(models.Model):
     )
 
     # Lead routing defaults (optional per page)
+    assignment_type = fields.Selection([
+        ('round_robin', 'Round Robin'),
+        ('specific_user', 'Specific Salesperson'),
+        ('no_assignment', 'Do Not Assign (Leave Unassigned)'),
+    ], string="Salesperson Assignment", default='round_robin', required=True,
+       help="Choose how salespeople are assigned for leads from this page:\n"
+            "- Round Robin: Automatically rotate assignment among salespeople.\n"
+            "- Specific Salesperson: Assign all leads to the selected salesperson.\n"
+            "- Do Not Assign: Create leads without assigning any salesperson.")
     team_id = fields.Many2one(
         'crm.team',
         string="Sales Team",
-        help="Default Sales Team for leads from this page. Leave empty to use standard round-robin.",
+        help="Default Sales Team for leads from this page. Leave empty if no team should be assigned.",
     )
     user_id = fields.Many2one(
         'res.users',
         string="Salesperson",
-        help="Default Salesperson for leads from this page. Leave empty to use round-robin assignment.",
+        help="Default Salesperson for leads from this page (when 'Specific Salesperson' is selected).",
     )
     campaign_id = fields.Many2one(
         'utm.campaign',
@@ -108,6 +117,32 @@ class MetaLeadadsPage(models.Model):
             'domain': [('meta_page_id', '=', self.id)],
             'context': {'default_meta_page_id': self.id},
         }
+
+    def get_lead_salesperson_and_team(self, existing_lead=None):
+        """
+        Determine (user_id, team_id) for a lead originating from this page.
+        Returns: (user_id or False, team_id or False)
+        """
+        self.ensure_one()
+        # If an existing lead already has a salesperson assigned, preserve it
+        if existing_lead and existing_lead.user_id:
+            existing_team_id = existing_lead.team_id.id if existing_lead.team_id else (self.team_id.id or False)
+            return existing_lead.user_id.id, existing_team_id
+
+        existing_team_id = existing_lead.team_id.id if (existing_lead and existing_lead.team_id) else False
+
+        if self.assignment_type == 'no_assignment':
+            return False, (self.team_id.id or existing_team_id)
+
+        if self.assignment_type == 'specific_user':
+            return (self.user_id.id if self.user_id else False), (self.team_id.id or existing_team_id)
+
+        # Fallback / Round-Robin:
+        if self.user_id:
+            return self.user_id.id, (self.team_id.id or existing_team_id)
+
+        user_id, team_id = self.env['crm.lead']._get_next_round_robin_salesperson(team=self.team_id)
+        return user_id, (team_id or existing_team_id)
 
     def _get_page_access_token(self):
         """Exchange user token for page token if needed, or return access token."""

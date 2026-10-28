@@ -478,22 +478,7 @@ class CrmLead(models.Model):
                             lead_name = full_name or f"Meta Lead {meta_lead_id}"
 
                             existing = self.search([('meta_lead_id', '=', meta_lead_id)], limit=1)
-
-                            if existing:
-                                user_id = existing.user_id.id if existing.user_id else False
-                                team_id = existing.team_id.id if existing.team_id else False
-                                if not user_id:
-                                    if page.user_id:
-                                        user_id = page.user_id.id
-                                        team_id = page.team_id.id if page.team_id else (team_id or False)
-                                    else:
-                                        user_id, team_id = self._get_next_round_robin_salesperson(team=page.team_id)
-                            else:
-                                if page.user_id:
-                                    user_id = page.user_id.id
-                                    team_id = page.team_id.id if page.team_id else False
-                                else:
-                                    user_id, team_id = self._get_next_round_robin_salesperson(team=page.team_id)
+                            user_id, team_id = page.get_lead_salesperson_and_team(existing_lead=existing)
 
                             campaign_name = lead_json.get('campaign_name')
                             if campaign_name:
