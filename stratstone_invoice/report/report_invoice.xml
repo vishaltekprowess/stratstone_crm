@@ -147,7 +147,7 @@
                             </t>
                             <t t-else="">
                                 <div>1. Payment is due upon receipt of invoice.</div>
-                                <div>2. All disputes are subject to <span t-esc="company.city or (company.state_id and company.state_id.name) or 'local'"/> jurisdiction.</div>
+                                <div>2. All disputes are subject to <span t-esc="(company.partner_id and company.partner_id.city) or ('city' in company and company.city) or (company.partner_id and company.partner_id.state_id and company.partner_id.state_id.name) or ('state_id' in company and company.state_id and company.state_id.name) or 'local'"/> jurisdiction.</div>
                             </t>
                         </div>
 

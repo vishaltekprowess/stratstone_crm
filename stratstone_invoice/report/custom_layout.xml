@@ -8,7 +8,8 @@
     <template id="stratstone_header_layout">
         <t t-set="company" t-value="company or (o and o.company_id) or (doc and doc.company_id) or env.company"/>
         <t t-set="comp" t-value="company"/>
-        <t t-set="partner" t-value="comp.partner_id if comp else False"/>
+        <t t-set="res_company" t-value="comp.company_id if 'company_id' in comp and comp.company_id else comp"/>
+        <t t-set="partner" t-value="comp.partner_id if 'partner_id' in comp and comp.partner_id else (res_company.partner_id if 'partner_id' in res_company else False)"/>
 
         <div t-attf-class="header {{report_type != 'pdf' and 'h-0'}}" style="position: relative; width: 100%; margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; overflow: hidden; background-color: #ffffff;">
             <style>
@@ -316,6 +317,7 @@
     <template id="stratstone_footer_layout">
         <t t-set="company" t-value="company or (o and o.company_id) or (doc and doc.company_id) or env.company"/>
         <t t-set="comp" t-value="company"/>
+        <t t-set="res_company" t-value="comp.company_id if 'company_id' in comp and comp.company_id else comp"/>
         <div t-attf-class="footer o_standard_footer {{report_type != 'pdf' and 'position-relative mt-auto mx-n5'}}"
              style="font-family: Arial, Helvetica, sans-serif; font-size: 10.5px; color: #6b7280; border-top: 1px solid #dcd7ce; padding-top: 5px; padding-left: 12mm; padding-right: 12mm; line-height: 1.45;">
             <style>
@@ -324,14 +326,17 @@
                 }
             </style>
             <div style="text-align: center; margin-bottom: 2px; font-style: italic; color: #78716c;">
-                Thank you for choosing <span t-esc="comp.name or 'Stratstone Realty'"/>. For any inquiries, please contact <span t-esc="comp.email if comp.email else ''"/> or call <span t-esc="comp.phone if comp.phone else ''"/>.
+                Thank you for choosing <span t-esc="comp.name or res_company.name or 'Stratstone Realty'"/>. For any inquiries, please contact <span t-esc="comp.email if ('email' in comp and comp.email) else (res_company.email if 'email' in res_company and res_company.email else '')"/> or call <span t-esc="comp.phone if ('phone' in comp and comp.phone) else (res_company.phone if 'phone' in res_company and res_company.phone else '')"/>.
             </div>
             <div class="row" style="font-size: 10px; color: #4b5563; border-top: 1px solid #f2efe9; padding-top: 2px;">
                 <div class="col-8 text-start">
-                    <span t-if="comp.name" t-esc="comp.name" style="font-weight: bold; color: #111827;"/>
-                    <span t-if="comp.vat"> | GSTIN: <span t-esc="comp.vat"/></span>
-                    <span t-if="comp.company_registry"> | CIN: <span t-esc="comp.company_registry"/></span>
-                    <span t-if="comp.website"> | Web: <span t-esc="comp.website"/></span>
+                    <span t-if="'name' in comp and comp.name" t-esc="comp.name" style="font-weight: bold; color: #111827;"/>
+                    <span t-elif="'name' in res_company and res_company.name" t-esc="res_company.name" style="font-weight: bold; color: #111827;"/>
+                    <span t-if="'vat' in comp and comp.vat"> | GSTIN: <span t-esc="comp.vat"/></span>
+                    <span t-elif="'vat' in res_company and res_company.vat"> | GSTIN: <span t-esc="res_company.vat"/></span>
+                    <span t-if="'company_registry' in res_company and res_company.company_registry"> | CIN: <span t-esc="res_company.company_registry"/></span>
+                    <span t-if="'website' in comp and comp.website"> | Web: <span t-esc="comp.website"/></span>
+                    <span t-elif="'website' in res_company and res_company.website"> | Web: <span t-esc="res_company.website"/></span>
                 </div>
                 <div class="col-4 text-end">
                     <span t-if="report_type == 'pdf'">
