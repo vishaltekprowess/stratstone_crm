@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="paperformat_a4_stratstone" model="report.paperformat">
+        <field name="name">A4 Stratstone Professional Invoice</field>
+        <field name="default" eval="True"/>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">45</field>
+        <field name="margin_bottom">22</field>
+        <field name="margin_left">0</field>
+        <field name="margin_right">0</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">45</field>
+        <field name="dpi">120</field>
+        <field name="css_margins" eval="False"/>
+        <field name="disable_shrinking" eval="True"/>
+        <field name="page_width">0</field>
+        <field name="page_height">0</field>
+        <field name="print_page_width">210</field>
+        <field name="print_page_height">297</field>
+    </record>
+
+    <!-- Bind paperformat to standard account invoice reports so Print -> Invoices also uses it -->
+    <record id="account.account_invoices" model="ir.actions.report">
+        <field name="paperformat_id" ref="stratstone_invoice.paperformat_a4_stratstone"/>
+    </record>
+    <record id="account.account_invoices_without_payment" model="ir.actions.report">
+        <field name="paperformat_id" ref="stratstone_invoice.paperformat_a4_stratstone"/>
+    </record>
+</odoo>

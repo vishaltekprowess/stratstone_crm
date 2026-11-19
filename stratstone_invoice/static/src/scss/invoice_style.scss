@@ -1,0 +1,28 @@
+/* ==========================================================================
+   Stratstone Professional Invoice Styling
+   Clean luxury styling without unwanted borders
+   ========================================================================== */
+
+.stratstone-invoice,
+.stratstone-invoice * {
+    font-family: Arial, Helvetica, "Nimbus Sans L", sans-serif !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+}
+
+.avoid-page-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+}
+
+/* Prevent wkhtmltopdf from collapsing tables into black borders */
+.stratstone-invoice table {
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+}
+
+.header table,
+.header tr,
+.header td {
+    border: none !important;
+}
